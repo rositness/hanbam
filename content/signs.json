@@ -1,0 +1,33 @@
+{
+  "_comment": "Вывески для мини-игры «Читаем вывески»: [надпись, романизация, перевод, стиль]. Стили: metro, exit, info, shop, warn, sale, pharm, women.",
+  "signs": [
+    ["출구", "chulgu", "Выход", "exit"],
+    ["입구", "ipgu", "Вход", "info"],
+    ["비상구", "bisanggu", "Аварийный выход", "exit"],
+    ["화장실", "hwajangsil", "Туалет", "info"],
+    ["남자", "namja", "Мужской (туалет)", "info"],
+    ["여자", "yeoja", "Женский (туалет)", "women"],
+    ["지하철", "jihacheol", "Метро", "metro"],
+    ["갈아타는 곳", "garataneun got", "Пересадка", "metro"],
+    ["타는 곳", "taneun got", "Посадка (платформа)", "metro"],
+    ["택시 타는 곳", "taeksi taneun got", "Стоянка такси", "metro"],
+    ["노약자석", "noyakjaseok", "Места для пожилых и слабых", "metro"],
+    ["매표소", "maepyoso", "Касса (билеты)", "info"],
+    ["편의점", "pyeonuijeom", "Круглосуточный магазин", "shop"],
+    ["약국", "yakguk", "Аптека", "pharm"],
+    ["병원", "byeongwon", "Больница", "info"],
+    ["은행", "eunhaeng", "Банк", "info"],
+    ["영업 중", "yeongeop jung", "Открыто", "shop"],
+    ["준비 중", "junbi jung", "Закрыто (идёт подготовка)", "shop"],
+    ["당기세요", "danggiseyo", "На себя", "info"],
+    ["미세요", "miseyo", "От себя", "info"],
+    ["금연", "geumyeon", "Не курить", "warn"],
+    ["주차 금지", "jucha geumji", "Парковка запрещена", "warn"],
+    ["조용히", "joyonghi", "Тише, пожалуйста", "warn"],
+    ["할인", "harin", "Скидка", "sale"],
+    ["신상품", "sinsangpum", "Новинка", "sale"],
+    ["분실물 센터", "bunsilmul senteo", "Бюро находок", "info"],
+    ["안내", "annae", "Справочная, информация", "info"],
+    ["엘리베이터", "ellibeiteo", "Лифт", "info"]
+  ]
+}

@@ -57,6 +57,8 @@ try {
     lines.forEach((x) => add(x.who ? vm.get(x.who) : NARRATOR, x.ko));
   }
 } catch { /* историй нет */ }
+// Вывески
+try { for (const x of read('content/signs.json').signs || []) add('F', x[0]); } catch { /* нет вывесок */ }
 // Фразы из интерфейса
 ['안녕하세요', '안녕하세요! 만나서 반갑습니다.', '좋아요! 잘했어요!'].forEach((t) => add('F', t));
 

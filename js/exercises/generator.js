@@ -2,7 +2,7 @@
 // (слова, предложения, пропуски, буквы), а упражнения строятся здесь автоматически.
 // Каждое упражнение — простой JSON-объект: его можно сохранить в «ошибки» и показать снова.
 
-import { units, lessons, hangul, lessonWords, unitWords, allMainWords, lettersUpTo, emojiOf } from '../core/content.js';
+import { units, lessons, hangul, lessonWords, unitWords, allMainWords, lettersUpTo, emojiOf, signs } from '../core/content.js';
 import { state } from '../core/store.js';
 import { shuffle, sample, distractors, uniqueBy } from '../core/utils.js';
 import { decomposeSyllable, romanizeSyllable, isSyllable, CHO, JUNG } from '../core/hangul.js';
@@ -261,4 +261,17 @@ export function genGrammarPractice(lesson) {
   (lesson.grammar?.examples || []).filter((e) => !e.ko.includes('→') && tokenize(e.ko).length >= 2).slice(0, 2)
     .forEach((e) => ex.push(exBuild(e, extra, uid, true)));
   return shuffle(ex);
+}
+
+// ---------- «Читаем вывески» ----------
+export function genSigns(n = 10) {
+  return sample(signs, Math.min(n, signs.length)).map((s, i) => {
+    const listen = i % 4 === 3; // каждое 4-е — наоборот: слышим надпись и выбираем вывеску
+    if (listen) {
+      const opts = shuffle([s, ...distractors(s, signs, 3, (x) => x.ko)]).map((x) => ({ t: x.ko }));
+      return { type: 'choice', key: 'sgl:' + s.ko, instr: 'Какую надпись вы слышите?', q: { audio: s.ko, hideText: true }, opts, ans: s.ko, reveal: { ko: s.ko, rom: s.rom, ru: s.ru }, noMistake: true };
+    }
+    const opts = shuffle([s, ...distractors(s, signs, 3, (x) => x.ru)]).map((x) => ({ t: x.ru }));
+    return { type: 'choice', key: 'sg:' + s.ko, instr: 'Что написано на вывеске?', q: { sign: s.ko, signStyle: s.style, audio: s.ko, audioAfter: true }, opts, ans: s.ru, noRom: true, reveal: { ko: s.ko, rom: s.rom, ru: s.ru }, noMistake: true };
+  });
 }

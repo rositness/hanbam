@@ -26,6 +26,7 @@ function listenBig(text, auto = true) {
 function question(q, ex) {
   if (!q) return null;
   if (q.hideText) return listenBig(q.audio, true);
+  if (q.sign) return h('div', { class: 'sign-stage' }, h('div', { class: 'sign sign-' + (q.signStyle || 'info'), lang: 'ko' }, h('span', { class: 'ko' }, q.sign)));
   if (q.ko) {
     const sp = q.audio && !q.audioAfter ? bindSpeakButton(h('button', { class: 'icon-btn', 'aria-label': 'Озвучить' }, icon('volume')), q.audio) : null;
     if (sp && autoplay()) setTimeout(() => sp.click(), 300);

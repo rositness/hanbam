@@ -111,6 +111,7 @@ try {
   const sj = JSON.parse(fs.readFileSync(path.join(root, 'stories.json'), 'utf8'));
   for (const st of sj.stories) st.lines.forEach((l) => items.push({ where: 'история ' + st.id, ko: l[1], rom: l[2] }));
 } catch { /* нет историй */ }
+try { JSON.parse(fs.readFileSync(path.join(root, 'signs.json'), 'utf8')).signs.forEach((x) => items.push({ where: 'вывеска', ko: x[0], rom: x[1] })); } catch { /* нет вывесок */ }
 let bad = 0;
 for (const it of items) {
   const auto = romanize(it.ko);

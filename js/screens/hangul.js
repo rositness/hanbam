@@ -8,8 +8,9 @@ import { openSheet, speakBtn, toast, sfx } from '../core/ui.js';
 import { update } from '../core/store.js';
 import { compose, romanizeSyllable, CHO, JUNG, JONG } from '../core/hangul.js';
 import { traceCanvas } from '../exercises/trace.js';
+import { signs } from '../core/content.js';
 
-const TABS = [['letters', 'Буквы'], ['syllables', 'Слоги'], ['write', 'Прописи'], ['rules', 'Чтение']];
+const TABS = [['letters', 'Буквы'], ['syllables', 'Слоги'], ['write', 'Прописи'], ['rules', 'Чтение'], ['signs', 'Вывески']];
 
 export function letterSheet(L) {
   const tc = traceCanvas(L.ch);
@@ -137,8 +138,17 @@ function rulesTab() {
       h('div', { class: 'row' }, h('div', { class: 'grow' }, h('div', { class: 'ko', style: { color: 'var(--accent-2)' } }, `[${e[1]}]`), h('div', { class: 'small muted' }, `${e[2]} · ${e[3]}`)), speakBtn(e[0])))))));
 }
 
+function signsTab() {
+  return h('div', { class: 'col' },
+    h('div', { class: 'tip' }, '🪧', h('span', null, 'Настоящие надписи из корейского метро, магазинов и улиц. Прочитайте вывеску и выберите, что она значит. Нажмите на любую карточку ниже, чтобы услышать надпись.')),
+    h('button', { class: 'btn btn-primary btn-block btn-lg', onclick: () => navigate('/review/practice?signs=1') }, '🪧 Играть: 10 вывесок'),
+    h('div', { class: 'signs-grid' }, signs.map((s) => h('button', { class: 'sign-card', onclick: () => speak(s.ko) },
+      h('div', { class: 'sign sign-sm sign-' + s.style }, h('span', { class: 'ko' }, s.ko)),
+      h('div', { class: 'small', style: { fontWeight: 700 } }, s.ru), h('span', { class: 'rom', style: { fontSize: '12px' } }, s.rom)))));
+}
+
 export function hangulScreen({ tab = 'letters' }, query) {
-  const views = { letters: lettersTab, syllables: syllablesTab, write: writeTab, rules: rulesTab };
+  const views = { letters: lettersTab, syllables: syllablesTab, write: writeTab, rules: rulesTab, signs: signsTab };
   const view = (views[tab] || lettersTab)();
   const el = h('div', null,
     h('div', { class: 'row between mb' },

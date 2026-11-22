@@ -8,7 +8,7 @@ import { speak, stopSpeaking } from '../core/tts.js';
 import { romEl, speakBtn, sfx, haptic, emptyState, confirmDialog } from '../core/ui.js';
 import { dueIds, dueCount, srsCount, grade, previewInterval, formatIvl, today } from '../core/srs.js';
 import { addXP } from '../core/game.js';
-import { genPractice, genHangulQuiz, genGrammarPractice } from '../exercises/generator.js';
+import { genPractice, genHangulQuiz, genGrammarPractice, genSigns } from '../exercises/generator.js';
 import { runSession, resultView } from './session.js';
 import { pl, shuffle } from '../core/utils.js';
 import { koreanKeyboard } from '../exercises/keyboard.js';
@@ -215,8 +215,9 @@ export function mistakesSession() {
 
 // ---------- Практика ----------
 export function practiceSession(params, query) {
-  const isHangul = !!query.get('hangul');
-  const exs = isHangul ? genHangulQuiz(12) : genPractice(12);
+  const isSigns = !!query.get('signs');
+  const isHangul = !!query.get('hangul') || isSigns;
+  const exs = isSigns ? genSigns(10) : query.get('hangul') ? genHangulQuiz(12) : genPractice(12);
   return runSession({
     exercises: exs,
     mode: 'practice',
@@ -226,9 +227,9 @@ export function practiceSession(params, query) {
       const xp = Math.max(2, r.correct);
       addXP(xp, 'practice');
       return resultView({
-        emoji: isHangul ? '한' : '🎲', title: 'Практика завершена', accuracy: r.accuracy, xp,
+        emoji: isSigns ? '🪧' : isHangul ? '한' : '🎲', title: isSigns ? 'Вывески прочитаны!' : 'Практика завершена', accuracy: r.accuracy, xp,
         stats: [[`${r.correct}/${r.answered}`, 'верно'], [`🔥${r.maxCombo}`, 'комбо']],
-        primary: h('button', { class: 'btn btn-primary btn-block btn-lg', onclick: () => navigate('/review/practice' + (isHangul ? '?hangul=1&' : '?') + 'r=' + Date.now()) }, 'Ещё раунд'),
+        primary: h('button', { class: 'btn btn-primary btn-block btn-lg', onclick: () => navigate('/review/practice' + (isSigns ? '?signs=1&' : isHangul ? '?hangul=1&' : '?') + 'r=' + Date.now()) }, 'Ещё раунд'),
         secondary: h('button', { class: 'btn btn-ghost btn-block', onclick: () => navigate(isHangul ? '/hangul' : '/review') }, 'Готово'),
       });
     },
