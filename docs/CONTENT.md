@@ -21,6 +21,8 @@
 
 ## Юнит со словами: content/units/uXX.json
 
+Необязательные поля оформления: `"color": "#ff922b"` — цвет юнита на карте (иначе берётся из палитры по порядку) и `"scene": "ramen"` — иллюстрация рядом с тропинкой. Доступные сцены: hangul, gate, balloons, house, ramen, clock, tower, shop, subway, sunrise, guitar, weather, books, health, hearts, calendar, plane, apartment, lanterns, phone, bank (см. js/core/scenes.js).
+
 ```json
 {
   "id": "u05",

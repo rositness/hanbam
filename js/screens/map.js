@@ -13,10 +13,38 @@ import { speakBtn, romEl } from '../core/ui.js';
 import { shouldOfferInstall, canPrompt, promptInstall, dismissInstall, isIOS } from '../core/install.js';
 import { showInstallHelp } from './profile.js';
 import { nextStory } from './stories.js';
+import { todaysQuests, claimQuest, claimChest, chestReady, QUEST_XP, CHEST_XP } from '../core/quests.js';
+import { addXP } from '../core/game.js';
+import { sfx, confetti } from '../core/ui.js';
+import { sceneSVG, sceneEl } from '../core/scenes.js';
+
+// Задания дня с наградами.
+function questsCard() {
+  const el = h('div', { class: 'quests' });
+  const paint = () => {
+    const qs = todaysQuests();
+    const got = qs.filter((q) => q.claimed).length;
+    el.replaceChildren(...[
+      h('div', { class: 'row between' }, h('div', { class: 'h3' }, '🎯 Задания дня'), h('span', { class: 'badge ' + (got === 3 ? 'ok' : 'soft') }, `${got}/3`)),
+      ...qs.map((q) => h('div', { class: 'quest' + (q.claimed ? ' claimed' : '') },
+        h('span', { class: 'quest-icon' }, q.icon),
+        h('div', { class: 'grow' },
+          h('div', { class: 'quest-title' }, q.title),
+          h('div', { class: 'bar gold' }, h('span', { style: { width: Math.round((q.value / q.target) * 100) + '%' } }))),
+        q.claimed ? h('span', { class: 'badge ok' }, '✓')
+          : q.done ? h('button', { class: 'btn btn-sm btn-primary', onclick: () => { claimQuest(q.id, addXP); sfx.win(); paint(); } }, `+${QUEST_XP} XP`)
+            : h('span', { class: 'small muted', style: { fontWeight: 700 } }, `${q.value}/${q.target}`))),
+      chestReady() ? h('button', { class: 'btn btn-block chest-btn', onclick: () => { claimChest(addXP); sfx.level(); confetti(140); paint(); } }, `🎁 Открыть сундук: +${CHEST_XP} XP`)
+        : got === 3 ? h('div', { class: 'small muted center' }, '🎁 Сундук открыт. Новые задания — завтра!') : null].filter(Boolean));
+  };
+  paint();
+  return el;
+}
 
 // Карточки под «Продолжить»: повторение, установка приложения, слово дня.
 function homeCards() {
   const box = h('div', { class: 'home-cards' });
+  box.append(questsCard());
   const due = dueCount();
   if (due > 0) {
     box.append(h('button', { class: 'home-card review', onclick: () => navigate('/review/srs') },
@@ -121,7 +149,7 @@ function continueCard() {
   const t = nodeTitle(n);
   const go = () => navigate(nodeHref(n));
   const card = h('div', { class: 'continue-card' },
-    h('div', { class: 'ci ko', style: { background: `linear-gradient(135deg, ${unit.color}, var(--accent))` } }, unit.icon),
+    sceneEl(unit, 64, 'ci-scene'),
     h('div', { class: 'grow' }, h('div', { class: 'small muted', style: { fontWeight: 800, letterSpacing: '.06em' } }, 'ПРОДОЛЖИТЬ'), h('div', { class: 'h3' }, t.title), h('div', { class: 'sub small' }, t.sub)),
     h('button', { class: 'icon-btn accent', 'aria-label': 'Начать', onclick: go }, icon('play')));
   card.addEventListener('click', (e) => { if (!e.target.closest('button')) go(); });
@@ -169,18 +197,27 @@ const OFFSETS = [0, 48, 70, 48, 0, -48, -70, -48];
 function unitSection(unit, line, number, current, offsetStart) {
   const p = unitProgress(unit);
   const firstOpen = nodeUnlocked({ type: 'lesson', id: unit.lessons[0].id, unitId: unit.id });
-  const section = h('section', { class: 'path-unit', id: 'unit-' + unit.id, style: { '--line-color': line.color } });
+  const crowned = testPassed(unit.id);
+  const section = h('section', { class: 'path-unit', id: 'unit-' + unit.id, style: { '--line-color': unit.color } });
   section.append(h('button', { class: 'unit-banner' + (firstOpen ? '' : ' locked'), onclick: () => navigate(`/unit/${unit.id}`) },
+    h('span', { class: 'ub-mark ko', 'aria-hidden': 'true' }, unit.icon),
     h('div', { class: 'grow' },
-      h('div', { class: 'ub-label' }, unit.kind === 'hangul' ? `Хангыль · часть ${number}` : `Юнит ${number} · ${p.done}/${p.total}`),
+      h('div', { class: 'ub-label' }, unit.kind === 'hangul' ? `Хангыль · часть ${number}` : `Юнит ${number}`, crowned ? ' · 👑' : ''),
       h('div', { class: 'ub-title' }, unit.title),
-      h('div', { class: 'ub-ko ko' }, unit.ko)),
+      h('div', { class: 'ub-ko ko' }, unit.ko),
+      p.done ? h('div', { class: 'ub-progress' }, h('div', { class: 'ub-bar' }, h('span', { style: { width: Math.round((p.done / p.total) * 100) + '%' } })), h('span', null, `${p.done}/${p.total}`)) : null),
     h('span', { class: 'ub-btn', 'aria-label': 'Слова и грамматика юнита' }, icon('book'))));
 
   const path = h('div', { class: 'path' });
   const nodes = [...unit.lessons.map((l) => ({ type: 'lesson', id: l.id, unitId: unit.id })), { type: 'test', id: unit.id, unitId: unit.id }];
+  const offs = nodes.map((_, i) => OFFSETS[(offsetStart + i) % OFFSETS.length]);
+  // Иллюстрация юнита — с той стороны, куда тропинка не уходит.
+  const side = offs.reduce((s, x) => s + x, 0) >= 0 ? 'left' : 'right';
+  const scene = h('div', { class: `path-scene ${side}` });
+  scene.innerHTML = sceneSVG(unit, { locked: !firstOpen });
+  path.append(scene);
   nodes.forEach((n, i) => {
-    const off = OFFSETS[(offsetStart + i) % OFFSETS.length];
+    const off = offs[i];
     const unlocked = nodeUnlocked(n);
     const done = n.type === 'lesson' ? lessonDone(n.id) : testPassed(n.id);
     const isCur = current && current.type === n.type && current.id === n.id;
@@ -196,7 +233,7 @@ function unitSection(unit, line, number, current, offsetStart) {
       'aria-label': nodeTitle(n).title,
       onclick: () => nodeSheet(n, unit),
     }, inner);
-    const wrap = h('div', { class: 'path-node-wrap' + (unlocked ? '' : ' locked'), style: { transform: `translateX(${off}px)` } },
+    const wrap = h('div', { class: 'path-node-wrap' + (unlocked ? '' : ' locked'), 'data-off': off, 'data-done': done ? '1' : '', 'data-cur': isCur ? '1' : '', style: { transform: `translateX(${off}px)` } },
       isCur ? h('div', { class: 'start-bubble' }, done ? 'ПОВТОРИТЬ' : 'НАЧАТЬ') : null,
       btn,
       h('div', { class: 'node-label' }, n.type === 'test' ? (tp ? starsEl(tp.stars) : 'Итоговый тест') : l.title));
@@ -207,8 +244,46 @@ function unitSection(unit, line, number, current, offsetStart) {
     }
     path.append(wrap);
   });
+  trail(path);
   section.append(path);
   return section;
+}
+
+// Пунктирная тропинка между узлами; пройденная часть — золотая.
+// Координаты берём из offsetTop/offsetLeft, чтобы работало и с крупным текстом (zoom).
+function trail(path) {
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('class', 'path-trail');
+  svg.setAttribute('aria-hidden', 'true');
+  path.prepend(svg);
+  const draw = () => {
+    const W = path.offsetWidth, H = path.offsetHeight;
+    if (!W) return;
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('width', W); svg.setAttribute('height', H);
+    const pts = [...path.querySelectorAll('.path-node-wrap')].map((w) => {
+      const b = w.querySelector('.path-node');
+      return { x: w.offsetLeft + w.offsetWidth / 2 + Number(w.dataset.off || 0), y: w.offsetTop + b.offsetTop + b.offsetHeight / 2, done: !!w.dataset.done, cur: !!w.dataset.cur };
+    });
+    // Сцену ставим подальше от маскота у текущего узла.
+    const scene = path.querySelector('.path-scene');
+    if (scene && pts.length > 2) {
+      const ci = pts.findIndex((p) => p.cur), last = pts.length - 1;
+      const y = ci >= 0 && ci < last ? pts[last].y : (pts[1].y + pts[2].y) / 2;
+      scene.style.top = Math.round(y - scene.offsetHeight / 2) + 'px';
+      scene.classList.add('placed');
+    }
+    let d = '', dd = '';
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1], b = pts[i], k = (b.y - a.y) * 0.55;
+      const seg = `M${a.x} ${a.y} C${a.x} ${a.y + k} ${b.x} ${b.y - k} ${b.x} ${b.y}`;
+      if (a.done && b.done) dd += seg; else d += seg;
+    }
+    svg.innerHTML = `<path d="${d}" class="trail-todo"/><path d="${dd}" class="trail-done"/>`;
+  };
+  if ('ResizeObserver' in window) new ResizeObserver(draw).observe(path);
+  else setTimeout(draw, 300);
 }
 
 function lineSection(line, currentByLine) {

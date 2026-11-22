@@ -64,10 +64,13 @@ export async function loadContent() {
   }
 }
 
+// Цвета юнитов на карте (можно задать свой полем "color" в JSON юнита).
+const UNIT_COLORS = ['#20c997', '#4c9aff', '#9775fa', '#f06595', '#ff922b', '#5c7cfa', '#ff6b6b', '#12b886', '#cc5de8', '#f59f00'];
+
 function normalizeUnit(raw, line, order) {
   const unit = {
     id: raw.id, kind: raw.kind || 'words', title: raw.title, ko: raw.ko || '', icon: raw.icon || '•',
-    description: raw.description || '', lineId: line.id, color: line.color, order,
+    description: raw.description || '', lineId: line.id, color: raw.color || UNIT_COLORS[order % UNIT_COLORS.length], order, scene: raw.scene,
     lessons: [], phrases: (raw.phrases || []).map(triple),
   };
   unit.phrases.forEach((p) => phrases.push({ ...p, unitId: unit.id }));

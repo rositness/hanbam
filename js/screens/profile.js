@@ -140,7 +140,9 @@ export function settingsScreen() {
         h('div', { class: 'st-desc' }, '«Постепенно»: видна в первых юнитах, дальше — по нажатию.'),
         segmented('rom', [['auto', 'Постепенно'], ['always', 'Всегда'], ['never', 'По нажатию']])),
       h('div', { class: 'setting', style: { flexDirection: 'column', alignItems: 'stretch' } }, h('div', { class: 'st-title' }, 'Цель на день'),
-        segmented('dailyGoal', [[10, '10 XP'], [20, '20 XP'], [30, '30 XP'], [50, '50 XP']]))),
+        segmented('dailyGoal', [[10, '10 XP'], [20, '20 XP'], [30, '30 XP'], [50, '50 XP']])),
+      h('div', { class: 'setting', style: { flexDirection: 'column', alignItems: 'stretch' } }, h('div', { class: 'st-title' }, 'Размер текста'),
+        segmented('textScale', [[1, 'Обычный'], [1.15, 'Крупный']]))),
 
     h('div', { class: 'section-title' }, 'Звук и речь'),
     h('div', { class: 'card', style: { padding: '4px 0' } },

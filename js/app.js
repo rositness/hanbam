@@ -11,6 +11,7 @@ import { on } from './core/bus.js';
 import { toast, openSheet, sfx, confetti } from './core/ui.js';
 import { checkStreakOnOpen, checkAchievements } from './core/game.js';
 import { dueCount } from './core/srs.js';
+import { notifyQuests } from './core/quests.js';
 
 import { mapScreen } from './screens/map.js';
 import { unitScreen } from './screens/unit.js';
@@ -35,6 +36,8 @@ export function applyTheme() {
   document.documentElement.setAttribute('data-theme', t);
   document.querySelector('meta[name="theme-color"]').setAttribute('content', t === 'light' ? '#f5f3fc' : '#0b0a1a');
   try { localStorage.setItem('hb-theme', pref); } catch { /* ignore */ }
+  document.documentElement.style.setProperty('--text-scale', String(state.settings.textScale || 1));
+  document.documentElement.classList.toggle('big-text', (state.settings.textScale || 1) > 1);
 }
 matchMedia('(prefers-color-scheme: light)').addEventListener('change', applyTheme);
 
@@ -133,6 +136,7 @@ function wireEvents() {
   on('toast', ({ icon: ic, text }) => toast(text, { icon: ic }));
   on('achievement', (a) => { sfx.win(); toast(`Достижение: ${a.title}`, { icon: a.icon, ms: 3600 }); });
   on('goal', () => { toast('Дневная цель выполнена!', { icon: '🎯', ms: 3200 }); });
+  on('xp', () => setTimeout(notifyQuests, 700));
   let levelSheet = null;
   on('levelup', (lv) => {
     setTimeout(() => {

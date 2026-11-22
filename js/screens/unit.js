@@ -7,6 +7,7 @@ import { topbar, speakBtn, romEl, starsEl, toast } from '../core/ui.js';
 import { state } from '../core/store.js';
 import { lessonDone, nodeUnlocked, unitProgress } from '../core/game.js';
 import { wordRow, grammarBox } from './lesson.js';
+import { sceneEl } from '../core/scenes.js';
 
 export function unitScreen({ id }) {
   const unit = units.get(id);
@@ -16,7 +17,7 @@ export function unitScreen({ id }) {
   const el = h('div', { style: { '--line-color': unit.color } },
     topbar({ title: line.title, back: () => navigate(`/?u=${id}`) }),
     h('div', { class: 'card row gap-l', style: { background: `linear-gradient(135deg, color-mix(in srgb, ${unit.color} 22%, var(--surface)), var(--surface))` } },
-      h('div', { class: 'u-icon ko', style: { fontSize: '40px' } }, unit.icon),
+      sceneEl(unit, 76),
       h('div', { class: 'grow' }, h('div', { class: 'h2' }, unit.title), h('div', { class: 'ko sub' }, unit.ko), unit.description ? h('div', { class: 'small sub mt-s' }, unit.description) : null),
       progressRing(p.ratio, { size: 54, stroke: 5, color: unit.color, label: `${p.done}/${p.total}` })),
     h('div', { class: 'section-title' }, 'Уроки'),

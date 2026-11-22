@@ -22,6 +22,7 @@ export function defaults() {
       autoplay: true,        // автоозвучка в упражнениях
       unlockAll: false,
       reverseCards: false,   // карточки «русский → корейский»
+      textScale: 1,          // 1 — обычный текст, 1.15 — крупный
     },
     progress: {
       lessons: {},           // id → { done, best, times, last }

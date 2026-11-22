@@ -57,7 +57,7 @@ export function recordLesson(id, accuracy) {
     first = !cur.done;
     p.lessons[id] = { done: true, best: Math.max(cur.best, accuracy), times: cur.times + 1, last: Date.now() };
   });
-  update('stats', (s) => { s.lessons += first ? 1 : 0; if (accuracy >= 1) s.perfect += 1; });
+  update('stats', (s) => { s.lessons += first ? 1 : 0; s.lessonRuns = (s.lessonRuns || 0) + 1; if (accuracy >= 1) s.perfect += 1; });
   return first;
 }
 
@@ -177,6 +177,7 @@ export const ACHIEVEMENTS = [
   { id: 't5', icon: '🎯', title: 'Экзаменатор', desc: 'Сдать 5 тестов', test: (s) => s.tests >= 5 },
   { id: 'f20', icon: '🩹', title: 'Работа над ошибками', desc: 'Исправить 20 ошибок', test: (s) => s.fixed >= 20 },
   { id: 'd10', icon: '💬', title: 'Собеседник', desc: 'Прослушать 10 диалогов', test: (s) => s.dialogs >= 10 },
+  { id: 'q10', icon: '🎯', title: 'Исполнитель', desc: 'Выполнить 10 заданий дня', test: (s) => (s.questsDone || 0) >= 10 },
   { id: 'st5', icon: '📖', title: 'Книголюб', desc: 'Прочитать 5 историй', test: (s) => (s.stories || 0) >= 5 },
   { id: 'night', icon: '🌙', title: 'Ночной Сеул', desc: 'Заниматься после 23:00', test: (s) => s.night >= 1 },
 ];

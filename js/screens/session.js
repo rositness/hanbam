@@ -9,6 +9,7 @@ import { addMistake, fixMistake, countAnswer } from '../core/game.js';
 import { pick } from '../core/utils.js';
 import { mascot, LINES } from '../core/mascot.js';
 import { today } from '../core/srs.js';
+import { noteCombo } from '../core/quests.js';
 
 const PRAISE = ['Отлично!', 'Верно!', 'Супер!', 'Так держать!', '잘했어요!', 'Прекрасно!', '맞아요!'];
 
@@ -41,7 +42,17 @@ export function runSession({ exercises, mode = 'lesson', onDone, onExit, retryWr
   const foot = h('div', { class: 'session-foot' }, checkBtn);
   const root = h('div', { class: 'session' }, h('div', { class: 'session-top' }, exit, bar, comboEl), stage, foot);
 
-  const setBar = () => { bar.firstChild.style.width = Math.round((done.size / total) * 100) + '%'; };
+  let halfCheered = false;
+  const CHEERS = ['Половина пути! 💪', 'Уже полурока! 화이팅!', 'Отлично идёшь, ещё немного!', 'Ты на середине — так держать!'];
+  const setBar = () => {
+    bar.firstChild.style.width = Math.round((done.size / total) * 100) + '%';
+    if (!halfCheered && mode === 'lesson' && total >= 12 && done.size >= total / 2) {
+      halfCheered = true;
+      const c = h('div', { class: 'mid-cheer' }, mascot('wow', 64), h('div', { class: 'speech-bubble' }, pick(CHEERS)));
+      document.body.append(c);
+      setTimeout(() => { c.classList.add('out'); setTimeout(() => c.remove(), 400); }, 2300);
+    }
+  };
 
   const api = {
     ready(v) { if (!locked) checkBtn.disabled = !v; },
@@ -133,6 +144,7 @@ export function runSession({ exercises, mode = 'lesson', onDone, onExit, retryWr
   }
 
   function finish() {
+    noteCombo(maxCombo);
     teardown();
     const accuracy = answered ? correct / answered : 1;
     const out = onDone?.({ accuracy, correct, answered, maxCombo, wrong, ms: Date.now() - started });

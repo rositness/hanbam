@@ -10,6 +10,7 @@ import { runSession, resultView, streakView } from './session.js';
 import { dialogView } from './dialog.js';
 import { recordLesson, recordTest, addXP, lessonUnlocked, testUnlocked, todayXP, levelInfo, streakActiveToday } from '../core/game.js';
 import { emojiOf } from '../core/content.js';
+import { sceneEl } from '../core/scenes.js';
 import { addWords } from '../core/srs.js';
 import { pl } from '../core/utils.js';
 
@@ -82,7 +83,9 @@ function theoryView(lesson, onStart) {
     h('div', { class: 'topbar' },
       h('button', { class: 'icon-btn plain', 'aria-label': 'Закрыть', onclick: () => close(unit.id) }, icon('x')),
       h('div', { class: 'title' }, h('span', { class: 'sub' }, `${unit.title} · урок ${lesson.index + 1}`))),
-    h('div', null, h('div', { class: 'h1' }, lesson.title), lesson.goal ? h('div', { class: 'sub mt-s' }, '🎯 ', lesson.goal) : null),
+    h('div', { class: 'lesson-hero', style: { '--line-color': unit.color } },
+      h('div', { class: 'grow' }, h('div', { class: 'lh-step' }, `Урок ${lesson.index + 1} из ${unit.lessons.length}`), h('div', { class: 'h1' }, lesson.title), lesson.goal ? h('div', { class: 'sub mt-s' }, '🎯 ', lesson.goal) : null),
+      sceneEl(unit, 96)),
     h('div', { class: 'theory stagger' }, parts),
     h('div', { class: 'session-foot' }, h('button', { class: 'btn btn-primary btn-block btn-lg', onclick: onStart }, 'Начать упражнения', icon('right'))));
 }
