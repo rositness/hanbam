@@ -4,7 +4,7 @@ import { h, icon, progressRing as progressRingEl } from '../core/dom.js';
 import { state } from '../core/store.js';
 import { renderExercise } from '../exercises/render.js';
 import { romEl, sfx, haptic, confirmDialog, speakBtn, confetti } from '../core/ui.js';
-import { speak, stopSpeaking } from '../core/tts.js';
+import { speak, stopSpeaking, prefetch } from '../core/tts.js';
 import { addMistake, fixMistake, countAnswer } from '../core/game.js';
 import { pick } from '../core/utils.js';
 import { mascot, LINES } from '../core/mascot.js';
@@ -63,6 +63,7 @@ export function runSession({ exercises, mode = 'lesson', onDone, onExit, retryWr
     current = renderExercise(ex, api);
     if (ex.type === 'learn') { checkBtn.textContent = 'Понятно, дальше'; checkBtn.disabled = false; }
     window.__hbEx = ex; // для отладки и автотестов
+    queue.slice(pos + 1, pos + 3).forEach((it) => prefetch(audioTexts(it.ex)));
     const wrap = h('div', { class: 'ex' },
       h('div', { class: 'ex-instr' }, item.retry ? h('span', { class: 'badge soft', style: { marginRight: '8px' } }, 'ещё раз') : null, ex.instr),
       current.el);
@@ -191,4 +192,12 @@ export function streakView(count, history, onContinue) {
       h('span', { class: history[d] ? 'on' : '' }, history[d] ? '🔥' : ''), DOW[new Date(d * 86400000).getUTCDay()]))),
     h('div', { class: 'mascot-row mt' }, mascot('wow', 80, 'pop'), h('div', { class: 'speech-bubble' }, count >= 7 ? '대박! Ты легенда!' : 'Так держать! 화이팅!')),
     h('button', { class: 'btn btn-primary btn-block btn-lg mt', onclick: onContinue }, 'Продолжить'));
+}
+
+// Тексты, которые прозвучат в упражнении (для предзагрузки записей).
+function audioTexts(ex) {
+  const out = [ex.q?.audio, ex.say, ex.ko, ex.reveal?.say, ex.reveal?.ko?.replace(/ → .*/, ''), ex.example?.ko];
+  if (ex.type === 'choice') (ex.opts || []).forEach((o) => out.push(o.t));
+  if (ex.type === 'match') (ex.pairs || []).forEach((p) => out.push(p[0]));
+  return out.filter((t) => t && /[가-힣]/.test(t));
 }

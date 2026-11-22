@@ -137,11 +137,11 @@
         "examples": [
           ["시험 때문에 스트레스를 받아요.", "siheom ttaemune seuteureseureul badayo.", "Из-за экзамена у меня стресс."],
           ["일 때문에 못 갔어요.", "il ttaemune mot gasseoyo.", "Не смог пойти из-за работы."],
-          ["제 친구는 밝고 활발해요.", "je chinguneun balkko hwalbalhaeyo.", "Мой друг жизнерадостный и активный."]
+          ["제 친구는 밝고 활발해요.", "je chinguneun balgo hwalbalhaeyo.", "Мой друг жизнерадостный и активный."]
         ]
       },
       "sentences": [
-        ["제 친구는 밝고 활발해요.", "je chinguneun balkko hwalbalhaeyo.", "Мой друг жизнерадостный и активный."],
+        ["제 친구는 밝고 활발해요.", "je chinguneun balgo hwalbalhaeyo.", "Мой друг жизнерадостный и активный."],
         ["남동생은 조용하지만 착해요.", "namdongsaengeun joyonghajiman chakaeyo.", "Младший брат тихий, но добрый."],
         ["시험 때문에 스트레스를 받아요.", "siheom ttaemune seuteureseureul badayo.", "Из-за экзамена у меня стресс."],
         ["일 때문에 못 갔어요.", "il ttaemune mot gasseoyo.", "Не смог пойти из-за работы."],
@@ -157,7 +157,7 @@
         "title": "Новый сосед", "scene": "Союль расспрашивает Кирилла о соседе по комнате.",
         "lines": [
           ["소율", "새 룸메이트는 어때요?", "sae rummeiteuneun eottaeyo?", "Как тебе новый сосед?"],
-          ["키릴", "밝고 착해요. 그런데 좀 게을러요.", "balkko chakaeyo. geureonde jom geeulleoyo.", "Весёлый и добрый. Но немного ленивый."],
+          ["키릴", "밝고 착해요. 그런데 좀 게을러요.", "balgo chakaeyo. geureonde jom geeulleoyo.", "Весёлый и добрый. Но немного ленивый."],
           ["소율", "하하, 왜요?", "haha, waeyo?", "Ха-ха, почему?"],
           ["키릴", "설거지를 안 해요. 그래서 제가 해요.", "seolgeojireul an haeyo. geuraeseo jega haeyo.", "Не моет посуду. Поэтому мою я."],
           ["소율", "솔직하게 말해 보세요.", "soljikage malhae boseyo.", "Попробуй сказать ему прямо."],

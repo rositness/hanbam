@@ -84,7 +84,7 @@
         "examples": [
           ["지금 뭐 하고 있어요?", "jigeum mwo hago isseoyo?", "Что ты сейчас делаешь?"],
           ["요즘 한국어를 배우고 있어요.", "yojeum hangugeoreul baeugo isseoyo.", "Сейчас учу корейский."],
-          ["그때 책을 읽고 있었어요.", "geuttae chaegeul ikgo isseosseoyo.", "Тогда я читал книгу."]
+          ["그때 책을 읽고 있었어요.", "geuttae chaegeul ilgo isseosseoyo.", "Тогда я читал книгу."]
         ]
       },
       "sentences": [

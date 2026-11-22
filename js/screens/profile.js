@@ -10,6 +10,7 @@ import { srsCount, today } from '../core/srs.js';
 import { koreanVoices, speak, recordingCount, downloadAllAudio, audioCachedCount } from '../core/tts.js';
 import { canRecognize } from '../core/speech.js';
 import { downloadJSON } from '../core/utils.js';
+import { shareProgress } from './share.js';
 
 const DAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 
@@ -36,6 +37,7 @@ export function profileScreen() {
           h('div', { class: 'sub' }, `${lv.title} · `, h('span', { class: 'ko' }, lv.titleKo)),
           h('div', { class: 'row mt-s' }, h('div', { class: 'bar grow' }, h('span', { style: { width: Math.round(lv.ratio * 100) + '%' } })), h('span', { class: 'small muted' }, `${s.xp - lv.from}/${lv.to - lv.from}`)))),
     ),
+    h('button', { class: 'btn btn-primary btn-block mt', onclick: () => shareProgress() }, '📤 Поделиться успехом с друзьями'),
     h('div', { class: 'stats-grid mt' },
       h('div', { class: 'stat-box' }, h('span', { class: 'sb-icon' }, '🔥'), h('div', null, h('b', null, String(s.streak.count)), h('span', null, `серия · рекорд ${s.streak.best}`))),
       h('div', { class: 'stat-box' }, progressRing(Math.min(1, todayXP() / goal), { size: 44, stroke: 5, label: '' }), h('div', null, h('b', null, `${todayXP()}/${goal}`), h('span', null, 'XP сегодня'))),
@@ -160,6 +162,7 @@ export function settingsScreen() {
     h('div', { class: 'section-title' }, 'Обучение'),
     h('div', { class: 'card', style: { padding: '4px 0' } },
       setting('Обратные карточки', 'В повторении сначала показывать перевод', toggle('reverseCards')),
+      setting('Тест на уровень', 'Проверить знания и пропустить знакомые уроки', h('button', { class: 'btn btn-sm', onclick: () => navigate('/placement') }, 'Пройти')),
       setting('Открыть все уроки', 'Для тех, кто уже что-то знает', toggle('unlockAll'))),
 
     h('div', { class: 'section-title' }, 'Данные'),

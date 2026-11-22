@@ -292,12 +292,15 @@ function trace(ex, api) {
   let attempts = 0;
   const score = h('div', { class: 'trace-score sub' }, ex.strokesHint ? `Порядок черт: ${ex.strokesHint}` : 'Пишите сверху вниз и слева направо');
   const tc = traceCanvas(ex.ch, { onStroke: (n) => api.ready(n > 0) });
+  setTimeout(() => tc.animate(), 500); // сначала показываем, как пишется буква
   const say = bindSpeakButton(h('button', { class: 'icon-btn' }, icon('volume')), ex.say || ex.ch);
   return {
     el: h('div', { class: 'ex-body' },
       h('div', { class: 'row center', style: { justifyContent: 'center' } }, say, h('div', null, h('b', { class: 'ko', style: { fontSize: '22px' } }, ex.ch), ' · ', h('span', { class: 'rom', style: { display: 'inline' } }, ex.rom), ex.name ? h('span', { class: 'sub' }, ` · ${ex.name}`) : null)),
       tc.el, score,
-      h('div', { class: 'center' }, h('button', { class: 'btn btn-sm btn-ghost', type: 'button', onclick: () => tc.clear() }, icon('refresh', 'i-s'), 'Стереть'))),
+      h('div', { class: 'row', style: { justifyContent: 'center' } },
+        tc.hasStrokes ? h('button', { class: 'btn btn-sm', type: 'button', onclick: () => tc.animate() }, icon('play', 'i-s'), 'Показать порядок') : null,
+        h('button', { class: 'btn btn-sm btn-ghost', type: 'button', onclick: () => tc.clear() }, icon('refresh', 'i-s'), 'Стереть'))),
     check() {
       const r = tc.score();
       attempts++;
@@ -305,6 +308,7 @@ function trace(ex, api) {
       if (attempts >= 2) return { correct: true, skipped: false, note: 'Засчитано. Потренируйтесь ещё во вкладке «Хангыль → Прописи».' };
       score.textContent = r.coverage < 0.55 ? 'Обведите букву полностью и попробуйте ещё раз' : 'Старайтесь не выходить за контур';
       tc.clear();
+      tc.animate();
       return { retry: true };
     },
     destroy() { tc.destroy(); },

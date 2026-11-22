@@ -166,6 +166,18 @@ export function bindSpeakButton(btn, getText, opts = {}) {
   return btn;
 }
 
+// Заранее подгружаем записи, чтобы звук включался без задержки.
+export function prefetch(texts, voice = 'F') {
+  if (!neuralAvailable()) return;
+  for (const t of texts) {
+    if (!t) continue;
+    const v = typeof t === 'object' ? t.voice : voice;
+    const text = typeof t === 'object' ? t.text : t;
+    const k = audioKey(v, speechText(text));
+    if (index[v]?.has(k)) blobUrl(`audio/${v}/${k}.mp3`).catch(() => {});
+  }
+}
+
 // ---------- Загрузка всей озвучки для офлайна ----------
 export async function downloadAllAudio(onProgress) {
   if (!index) return { done: 0, total: 0 };

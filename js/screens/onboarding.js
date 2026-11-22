@@ -4,6 +4,7 @@ import { h, icon } from '../core/dom.js';
 import { update, state } from '../core/store.js';
 import { speak, recordingCount } from '../core/tts.js';
 import { mascot } from '../core/mascot.js';
+import { placementView } from './placement.js';
 
 export function onboarding(done) {
   let step = 0;
@@ -34,6 +35,7 @@ export function onboarding(done) {
         return b;
       })),
       next('Дальше')),
+    () => placementView({ onFinish: () => { step++; paint(); } }),
     () => {
       const status = h('div', { class: 'sub' });
       const check = () => {

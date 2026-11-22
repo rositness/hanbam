@@ -37,7 +37,7 @@
         ["날씨가 정말 더워요.", "nalssiga jeongmal deowoyo.", "Очень жарко."],
         ["밖에 비가 와요.", "bakke biga wayo.", "На улице идёт дождь."],
         ["우산 있어요?", "usan isseoyo?", "У тебя есть зонт?"],
-        ["오늘은 맑고 따뜻해요.", "oneureun malkko ttatteutaeyo.", "Сегодня ясно и тепло."],
+        ["오늘은 맑고 따뜻해요.", "oneureun malgo ttatteutaeyo.", "Сегодня ясно и тепло."],
         ["바람이 많이 불어요.", "barami mani bureoyo.", "Сильный ветер."]
       ],
       "drills": [

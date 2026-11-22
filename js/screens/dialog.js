@@ -2,7 +2,7 @@
 
 import { h, icon } from '../core/dom.js';
 import { dialogs, units, genders } from '../core/content.js';
-import { speak, stopSpeaking } from '../core/tts.js';
+import { speak, stopSpeaking, prefetch } from '../core/tts.js';
 import { romShown, topbar, toast, sfx } from '../core/ui.js';
 import { markDialog, addXP } from '../core/game.js';
 import { dialogVoices } from '../core/audiokey.js';
@@ -163,6 +163,7 @@ export function dialogView(d, { embedded = false, onFinish } = {}) {
   if (finishBtn) finishBtn.disabled = true;
 
   apply();
+  prefetch(d.lines.map((l) => ({ text: l.ko, voice: voices.get(l.who) })));
   const chat = h('div', { class: 'chat stagger mt-s' }, rows.map((r) => r.el));
   const unit = units.get(d.unitId);
   const el = h('div', { class: 'col' },

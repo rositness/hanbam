@@ -26,6 +26,7 @@ export function letterSheet(L) {
     h('div', { class: 'section-title' }, 'Пропись'),
     tc.el, score,
     h('div', { class: 'row' },
+      h('button', { class: 'btn grow', onclick: () => tc.animate() }, icon('play', 'i-s'), 'Порядок'),
       h('button', { class: 'btn grow', onclick: () => { tc.clear(); score.textContent = 'Обведите букву пальцем'; } }, icon('refresh', 'i-s'), 'Стереть'),
       h('button', { class: 'btn btn-primary grow', onclick: () => {
         if (!tc.hasInk()) return;
@@ -111,10 +112,12 @@ function writeTab() {
       h('button', { class: 'icon-btn', 'aria-label': 'Следующая', onclick: () => { i = (i + 1) % order.length; show(); } }, icon('right')));
     holder.replaceChildren(tc.el);
     speak(L.say);
+    setTimeout(() => tc.animate(), 400);
   }
   show();
   return h('div', { class: 'col' }, head, holder, score,
     h('div', { class: 'row' },
+      h('button', { class: 'btn grow', onclick: () => tc.animate() }, icon('play', 'i-s'), 'Порядок'),
       h('button', { class: 'btn grow', onclick: () => tc.clear() }, icon('refresh', 'i-s'), 'Стереть'),
       h('button', { class: 'btn btn-primary grow', onclick: () => {
         if (!tc.hasInk()) { toast('Сначала обведите букву', { icon: '✍️' }); return; }
@@ -122,7 +125,7 @@ function writeTab() {
         if (r.ok) { sfx.ok(); update('stats', (s) => { s.traceOk += 1; }); score.textContent = `Отлично! Точность ${r.value}%`; setTimeout(() => { i = (i + 1) % order.length; show(); }, 900); }
         else { sfx.bad(); score.textContent = r.coverage < 0.55 ? 'Обведите букву полностью' : 'Старайтесь не выходить за контур'; }
       } }, icon('check', 'i-s'), 'Проверить')),
-    h('div', { class: 'tip' }, '💡', h('span', null, 'Общее правило хангыля: черты пишутся сверху вниз и слева направо. Круг ㅇ — одним движением против часовой стрелки, начиная сверху.')));
+    h('div', { class: 'tip' }, '💡', h('span', null, 'Цифры на образце — порядок черт, кнопка «Порядок» показывает его анимацией. Общее правило: сверху вниз и слева направо, круг ㅇ — против часовой стрелки, начиная сверху.')));
 }
 
 function rulesTab() {
