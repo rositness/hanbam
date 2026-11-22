@@ -10,6 +10,7 @@ import { pick } from '../core/utils.js';
 import { mascot, LINES } from '../core/mascot.js';
 import { today } from '../core/srs.js';
 import { noteCombo } from '../core/quests.js';
+import { sceneEl } from '../core/scenes.js';
 
 const PRAISE = ['Отлично!', 'Верно!', 'Супер!', 'Так держать!', '잘했어요!', 'Прекрасно!', '맞아요!'];
 
@@ -170,14 +171,14 @@ export function runSession({ exercises, mode = 'lesson', onDone, onExit, retryWr
 }
 
 // ---------- Экран итогов ----------
-export function resultView({ emoji = '🎉', title, subtitle, accuracy, xp, stats = [], primary, secondary, celebrate = true, extra = null }) {
+export function resultView({ emoji = '🎉', title, subtitle, accuracy, xp, stats = [], primary, secondary, celebrate = true, extra = null, unit = null }) {
   if (celebrate) { sfx.win(); setTimeout(() => confetti(), 150); }
   const xpEl = h('b', null, '+0');
   let n = 0;
   const step = Math.max(1, Math.ceil(xp / 25));
   const timer = setInterval(() => { n = Math.min(xp, n + step); xpEl.textContent = '+' + n; if (n >= xp) clearInterval(timer); }, 40);
   return h('div', { class: 'result' },
-    h('div', { class: 'mascot-row', style: { justifyContent: 'center' } }, mascot(celebrate ? 'wow' : 'think', 116, 'pop'), h('div', { class: 'trophy', style: { fontSize: '52px' } }, emoji)),
+    h('div', { class: 'mascot-row', style: { justifyContent: 'center' } }, mascot(celebrate ? 'wow' : 'think', 116, 'pop'), unit ? sceneEl(unit, 112, 'pop') : h('div', { class: 'trophy', style: { fontSize: '52px' } }, emoji)),
     h('div', { class: 'h1' }, title),
     subtitle ? h('div', { class: 'sub' }, subtitle) : null,
     progressRingEl(accuracy, { size: 132, stroke: 12, label: h('div', null, h('div', { style: { fontSize: '30px' } }, Math.round(accuracy * 100) + '%'), h('div', { class: 'small muted' }, 'точность')) }),

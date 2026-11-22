@@ -113,7 +113,7 @@ export function lessonScreen({ id }) {
           if (!streakWasActive && streakActiveToday()) { root.replaceChildren(streakView(state.stats.streak.count, state.stats.history, () => close(lesson.unitId))); window.scrollTo({ top: 0 }); }
           else close(lesson.unitId);
         };
-        const result = () => resultView({
+        const result = () => resultView({ unit: units.get(lesson.unitId),
           emoji: r.accuracy >= 1 ? '💎' : r.accuracy >= 0.8 ? '🎉' : '👍',
           title: r.accuracy >= 1 ? 'Идеально!' : 'Урок пройден!',
           subtitle: lesson.title,
@@ -161,7 +161,7 @@ export function testScreen({ id }) {
         const { stars, firstPass } = recordTest(id, r.accuracy);
         const xp = stars ? 20 + stars * 5 + (firstPass ? 0 : -10) : 5;
         addXP(Math.max(5, xp), 'test');
-        return resultView({
+        return resultView({ unit,
           emoji: stars === 3 ? '🏆' : stars ? '🎖️' : '📘',
           title: stars ? 'Тест сдан!' : 'Почти получилось',
           subtitle: stars ? `${unit.title}` : 'Нужно 60% правильных ответов. Повторите уроки и попробуйте снова.',
