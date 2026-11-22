@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Ханбам — корейский с нуля</title>
+  <meta name="description" content="Корейский язык с нуля до разговорного уровня: хангыль, уроки, словарь с интервальными повторениями, грамматика и диалоги.">
+  <meta name="theme-color" content="#0b0a1a">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Ханбам">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+  <link rel="stylesheet" href="css/app.css">
+  <script>
+    // Тема до загрузки CSS-приложения, чтобы не было «вспышки».
+    (function () {
+      var t = 'system';
+      try { t = localStorage.getItem('hb-theme') || 'system'; } catch (e) {}
+      if (t === 'system') t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+</head>
+<body>
+  <div class="bg-lights" aria-hidden="true"></div>
+  <main id="app" class="app">
+    <div class="boot">
+      <div class="boot-logo ko">한밤</div>
+      <div class="boot-text">Загружаем уроки…</div>
+    </div>
+  </main>
+  <nav id="tabbar" class="tabbar" aria-label="Основная навигация"></nav>
+  <div id="overlay-root"></div>
+  <noscript>Для работы приложения нужен JavaScript.</noscript>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

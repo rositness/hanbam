@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "romanizationAutoUntil": "u04",
+  "lines": [
+    {
+      "id": "L0", "num": "0", "title": "Хангыль", "ko": "한글",
+      "subtitle": "Алфавит и правила чтения", "color": "#ffc94d",
+      "units": ["h1", "h2", "h3", "h4", "h5"]
+    },
+    {
+      "id": "L1", "num": "1", "title": "Линия 1 · A1", "ko": "1호선",
+      "subtitle": "Первые разговоры · TOPIK 1", "color": "#4fd8ff",
+      "units": ["u01", "u02", "u03", "u04", "u05", "u06", "u07", "u08"]
+    },
+    {
+      "id": "L2", "num": "2", "title": "Линия 2 · A2", "ko": "2호선",
+      "subtitle": "Уверенный разговор · TOPIK 2", "color": "#ff7ab6", "requires": "L1",
+      "units": ["u09", "u10", "u11", "u12", "u13", "u14", "u15", "u16"]
+    }
+  ]
+}
