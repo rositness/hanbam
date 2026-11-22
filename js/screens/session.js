@@ -158,7 +158,7 @@ export function runSession({ exercises, mode = 'lesson', onDone, onExit, retryWr
 }
 
 // ---------- Экран итогов ----------
-export function resultView({ emoji = '🎉', title, subtitle, accuracy, xp, stats = [], primary, secondary, celebrate = true }) {
+export function resultView({ emoji = '🎉', title, subtitle, accuracy, xp, stats = [], primary, secondary, celebrate = true, extra = null }) {
   if (celebrate) { sfx.win(); setTimeout(() => confetti(), 150); }
   const xpEl = h('b', null, '+0');
   let n = 0;
@@ -172,6 +172,7 @@ export function resultView({ emoji = '🎉', title, subtitle, accuracy, xp, stat
     h('div', { class: 'result-stats' },
       h('div', { class: 'rstat' }, xpEl, h('span', null, 'XP')),
       ...stats.map(([v, label]) => h('div', { class: 'rstat' }, h('b', null, v), h('span', null, label)))),
+    extra,
     h('div', { class: 'col', style: { width: '100%', marginTop: '10px' } }, primary, secondary || null));
 }
 

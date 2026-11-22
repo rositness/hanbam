@@ -11,6 +11,9 @@ import { addXP } from '../core/game.js';
 import { genPractice, genHangulQuiz } from '../exercises/generator.js';
 import { runSession, resultView } from './session.js';
 import { pl, shuffle } from '../core/utils.js';
+import { koreanKeyboard } from '../exercises/keyboard.js';
+import { compact, similarity } from '../core/hangul.js';
+import { emojiOf } from '../core/content.js';
 
 export function reviewScreen() {
   const due = dueCount();
@@ -27,12 +30,28 @@ export function reviewScreen() {
       h('div', { class: 'stat-box' }, h('span', { class: 'sb-icon' }, '⏰'), h('div', null, h('b', null, String(due)), h('span', null, 'к повтору'))),
       h('div', { class: 'stat-box' }, h('span', { class: 'sb-icon' }, '🧠'), h('div', null, h('b', null, `${learned}/${total}`), h('span', null, 'выучено / всего')))),
     h('div', { class: 'col stagger' },
-      card('🃏', 'Карточки слов', due ? `${pl(due, 'слово ждёт', 'слова ждут', 'слов ждут')} повторения` : total ? 'На сегодня всё! Можно повторить наперёд.' : 'Слова появятся после первого урока.',
-        due ? 'Начать' : 'Наперёд', () => navigate('/review/srs' + (due ? '' : '?ahead=1')), due > 0),
+      srsCard(due, total),
       card('🩹', 'Работа над ошибками', mist ? `${pl(mist, 'задание', 'задания', 'заданий')} с ошибками` : 'Ошибок нет — отлично!', 'Исправить', () => navigate('/review/mistakes'), mist > 0 && !due),
       card('🎲', 'Свободная практика', '12 случайных заданий из пройденных уроков', 'Играть', () => navigate('/review/practice')),
       card('한', 'Викторина по хангылю', 'Буквы, звуки и чтение слов', 'Играть', () => navigate('/review/practice?hangul=1'))),
     h('div', { class: 'tip mt' }, '💡', h('span', null, 'Карточки работают по интервальному методу: чем лучше вы знаете слово, тем реже оно попадается. Оценивайте себя честно — так алгоритм подберёт лучшее время для повтора.')));
+}
+
+const MODES = [['cards', '🃏 Карточки'], ['listen', '🎧 На слух'], ['write', '⌨️ Письмо']];
+function srsCard(due, total) {
+  let mode = state.settings.reviewMode || 'cards';
+  const seg = h('div', { class: 'segmented mt-s' }, MODES.map(([id, label]) => {
+    const b = h('button', { class: id === mode ? 'active' : '' }, label);
+    b.addEventListener('click', () => { mode = id; update('settings', (st) => { st.reviewMode = id; }); seg.querySelectorAll('button').forEach((x) => x.classList.toggle('active', x === b)); });
+    return b;
+  }));
+  return h('div', { class: 'card col', style: due ? { borderColor: 'var(--accent)', boxShadow: 'var(--glow)' } : null },
+    h('div', { class: 'row gap-l' },
+      h('div', { style: { fontSize: '36px' } }, '🧠'),
+      h('div', { class: 'grow' }, h('div', { class: 'h3' }, 'Повторение слов'),
+        h('div', { class: 'sub small' }, due ? `${pl(due, 'слово ждёт', 'слова ждут', 'слов ждут')} повторения` : total ? 'На сегодня всё! Можно повторить наперёд.' : 'Слова появятся после первого урока.')),
+      h('button', { class: 'btn btn-sm ' + (due ? 'btn-primary' : ''), onclick: () => navigate(`/review/srs?mode=${mode}${due ? '' : '&ahead=1'}`) }, due ? 'Начать' : 'Наперёд')),
+    seg);
 }
 
 // ---------- Карточки ----------
@@ -49,6 +68,8 @@ export function srsSession(params, query) {
   const totalCards = queue.length;
   let doneCount = 0, xp = 0, again = 0;
   const reverse = state.settings.reverseCards;
+  const mode = query.get('mode') || state.settings.reviewMode || 'cards';
+  let kb = null;
   const root = h('div', { class: 'session' });
   const bar = h('div', { class: 'bar' }, h('span'));
   const counter = h('div', { class: 'combo', style: { color: 'var(--text-2)' } });
@@ -61,6 +82,7 @@ export function srsSession(params, query) {
   }
 
   function show() {
+    kb?.destroy(); kb = null;
     if (!queue.length) return finish();
     bar.firstChild.style.width = Math.round((doneCount / totalCards) * 100) + '%';
     counter.textContent = `${doneCount}/${totalCards}`;
@@ -68,11 +90,14 @@ export function srsSession(params, query) {
     const w = words.get(id);
     const c = state.srs[id];
     const ex = sentenceFor(w);
-    const frontKo = !reverse;
-    const front = h('div', { class: 'flash-face' },
-      frontKo ? h('div', { class: 'ko q-ko', style: { fontSize: '42px' } }, w.ko) : h('div', { class: 'q-ru' }, w.ru),
-      frontKo ? speakBtn(w.ko, { cls: '' }) : null,
-      h('div', { class: 'small muted mt' }, 'Нажмите, чтобы перевернуть'));
+    if (mode === 'write') return showWrite(id, w);
+    const frontKo = !reverse && mode !== 'listen';
+    const front = mode === 'listen'
+      ? h('div', { class: 'flash-face' }, speakBtn(w.ko, { cls: 'accent' }), h('div', { class: 'h3 mt-s' }, 'Что значит это слово?'), h('div', { class: 'small muted mt' }, 'Вспомните перевод и нажмите, чтобы проверить'))
+      : h('div', { class: 'flash-face' },
+        frontKo ? h('div', { class: 'ko q-ko', style: { fontSize: '42px' } }, w.ko) : h('div', null, h('div', { style: { fontSize: '48px' } }, emojiOf(w)), h('div', { class: 'q-ru' }, w.ru)),
+        frontKo ? speakBtn(w.ko, { cls: '' }) : null,
+        h('div', { class: 'small muted mt' }, 'Нажмите, чтобы перевернуть'));
     const back = h('div', { class: 'flash-face back' },
       h('div', { class: 'ko q-ko', style: { fontSize: '36px' } }, w.ko),
       h('span', { class: 'rom' }, w.rom),
@@ -101,11 +126,52 @@ export function srsSession(params, query) {
       show();
     }
     stage.replaceChildren(flash, h('div', { class: 'grow' }), flipBtn, grades);
-    if (frontKo && state.settings.autoplay) setTimeout(() => speak(w.ko), 250);
+    if ((frontKo && state.settings.autoplay) || mode === 'listen') setTimeout(() => speak(w.ko), 250);
+  }
+
+  // Режим «Письмо»: по переводу набрать слово по-корейски, оценка ставится автоматически.
+  function showWrite(id, w) {
+    let text = '';
+    const display = h('div', { class: 'type-field ko', lang: 'ko' });
+    const checkBtn = h('button', { class: 'btn btn-primary btn-block btn-lg', disabled: true }, 'Проверить');
+    const paint = () => {
+      display.replaceChildren(text ? h('span', null, text) : h('span', { class: 'placeholder' }, 'Наберите слово по-корейски'), h('span', { class: 'caret' }));
+      checkBtn.disabled = !text.trim();
+    };
+    kb = koreanKeyboard({ onChange: (t) => { text = t; paint(); } });
+    paint();
+    const syll = [...w.ko.replace(/\s/g, '')].length;
+    const prompt = h('div', { class: 'q-card', style: { flexDirection: 'column', textAlign: 'center' } },
+      h('div', { style: { fontSize: '52px' } }, emojiOf(w) || '✍️'), h('div', { class: 'q-ru' }, w.ru),
+      h('div', { class: 'small muted' }, `Слогов: ${syll}`));
+    checkBtn.addEventListener('click', () => {
+      const ok = compact(text) === compact(w.ko) || (similarity(text, w.ko) >= 0.85 && syll >= 3);
+      ok ? sfx.ok() : sfx.bad();
+      speak(w.ko);
+      kb.destroy(); kb = null;
+      const next = h('button', { class: 'btn btn-block btn-lg ' + (ok ? 'btn-ok' : 'btn-bad'), onclick: () => rateW(ok ? 2 : 0) }, 'Дальше');
+      stage.replaceChildren(prompt,
+        h('div', { class: 'card mt-s', style: { borderColor: ok ? 'var(--ok)' : 'var(--bad)' } },
+          h('div', { class: 'h3', style: { color: ok ? 'var(--ok)' : 'var(--bad)' } }, ok ? '✓ Верно!' : '✗ Правильно так:'),
+          h('div', { class: 'row mt-s' }, speakBtn(w.ko), h('div', null, h('div', { class: 'ko', style: { fontSize: '26px', fontWeight: 700 } }, w.ko), h('span', { class: 'rom' }, w.rom))),
+          !ok && text ? h('div', { class: 'small muted mt-s' }, 'Ваш ответ: ', h('span', { class: 'ko' }, text)) : null),
+        h('div', { class: 'grow' }), next);
+    });
+    function rateW(g) {
+      grade(id, g);
+      update('stats', (st) => { st.reviews += 1; });
+      queue.shift();
+      if (g === 0) { again++; queue.splice(Math.min(queue.length, 3), 0, id); }
+      else { doneCount++; xp += 1; }
+      haptic(8);
+      show();
+    }
+    stage.replaceChildren(prompt, display, kb.el, checkBtn);
   }
 
   function finish(early = false) {
     stopSpeaking();
+    kb?.destroy(); kb = null;
     if (xp) addXP(xp, 'review');
     if (early && !doneCount) { navigate('/review'); return; }
     root.replaceChildren(resultView({
@@ -118,7 +184,7 @@ export function srsSession(params, query) {
   }
 
   show();
-  return { el: root, destroy: stopSpeaking };
+  return { el: root, destroy: () => { stopSpeaking(); kb?.destroy(); } };
 }
 
 // ---------- Ошибки ----------

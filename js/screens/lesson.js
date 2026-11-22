@@ -75,7 +75,7 @@ function theoryView(lesson, onStart) {
     if (W.length) {
       parts.push(h('div', { class: 'section-title' }, `В уроке ${W.length} новых слов — познакомимся с каждым`));
       parts.push(h('div', { class: 'lesson-chips' }, W.map((w) => h('button', { class: 'chip', onclick: () => import('../core/tts.js').then((m) => m.speak(w.ko)) },
-        emojiOf(w) || '•', ' ', h('span', { class: 'ko' }, w.ko), h('span', { class: 'muted', style: { fontWeight: 500 } }, ' — ' + w.ru)))));
+        emojiOf(w) || '•', ' ', h('span', { class: 'ko' }, w.ko), h('span', { class: 'muted', style: { fontWeight: 500 } }, ' — ' + w.ru.split(' (')[0].split(';')[0])))));
     }
   }
   return h('div', { class: 'col' },
@@ -118,6 +118,10 @@ export function lessonScreen({ id }) {
           stats: [[`${todayXP()}/${state.settings.dailyGoal}`, 'цель дня'], newWords ? [String(newWords), 'новых слов'] : [`🔥${state.stats.streak.count}`, 'серия']],
           primary: h('button', { class: 'btn btn-primary btn-block btn-lg', onclick: afterResult }, 'Продолжить'),
           secondary: r.wrong.length ? h('button', { class: 'btn btn-ghost btn-block', onclick: () => navigate('/review/mistakes') }, `Разобрать ошибки (${r.wrong.length})`) : null,
+          extra: lesson.kind === 'hangul' ? null : h('div', { style: { width: '100%', textAlign: 'left' } },
+            h('div', { class: 'section-title', style: { marginTop: '8px' } }, newWords ? '🧠 Новые слова — уже в повторении' : 'Слова урока'),
+            h('div', { class: 'lesson-chips' }, lessonWords(lesson).map((w) => h('button', { class: 'chip', onclick: () => import('../core/tts.js').then((m) => m.speak(w.ko)) },
+              emojiOf(w) || '•', ' ', h('span', { class: 'ko' }, w.ko), h('span', { class: 'muted', style: { fontWeight: 500 } }, ' ' + w.ru.split(' (')[0].split(';')[0]))))),
         });
         if (lesson.dialog) {
           const dv = dialogView(lesson.dialog, {

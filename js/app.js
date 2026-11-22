@@ -6,6 +6,7 @@ import { requestPersistence } from './core/db.js';
 import { loadContent } from './core/content.js';
 import { route, fallback, resolve, navigate, currentPath } from './core/router.js';
 import { initTTS } from './core/tts.js';
+import './core/install.js';
 import { on } from './core/bus.js';
 import { toast, openSheet, sfx, confetti } from './core/ui.js';
 import { checkStreakOnOpen, checkAchievements } from './core/game.js';

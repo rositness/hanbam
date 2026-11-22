@@ -2,12 +2,56 @@
 
 import { h, icon } from '../core/dom.js';
 import { state } from '../core/store.js';
-import { course, units, lessons, getLine } from '../core/content.js';
+import { course, units, lessons, getLine, allMainWords, emojiOf } from '../core/content.js';
 import { navigate } from '../core/router.js';
 import { toast, starsEl, openSheet } from '../core/ui.js';
 import { lessonDone, testPassed, nodeUnlocked, unitProgress, lineUnlocked, nextNodes, levelInfo, todayXP, streakActiveToday } from '../core/game.js';
 import { greeting } from '../core/utils.js';
 import { mascot } from '../core/mascot.js';
+import { dueCount, today, addWords } from '../core/srs.js';
+import { speakBtn, romEl } from '../core/ui.js';
+import { shouldOfferInstall, canPrompt, promptInstall, dismissInstall, isIOS } from '../core/install.js';
+import { showInstallHelp } from './profile.js';
+
+// Карточки под «Продолжить»: повторение, установка приложения, слово дня.
+function homeCards() {
+  const box = h('div', { class: 'home-cards' });
+  const due = dueCount();
+  if (due > 0) {
+    box.append(h('button', { class: 'home-card review', onclick: () => navigate('/review/srs') },
+      h('span', { class: 'hc-icon' }, '🧠'),
+      h('span', { class: 'grow' }, h('div', { style: { fontWeight: 800 } }, `Пора повторить: ${due} ${due % 10 === 1 && due % 100 !== 11 ? 'слово' : [2, 3, 4].includes(due % 10) && ![12, 13, 14].includes(due % 100) ? 'слова' : 'слов'}`),
+        h('div', { class: 'small muted' }, 'Пара минут — и слова не забудутся')),
+      icon('right', 'i-s')));
+  }
+  if (shouldOfferInstall()) {
+    const card = h('div', { class: 'home-card install' },
+      h('span', { class: 'hc-icon' }, '📲'),
+      h('span', { class: 'grow' }, h('div', { style: { fontWeight: 800 } }, 'Установите на телефон'), h('div', { class: 'small muted' }, 'Иконка на экране, работает без интернета')),
+      h('button', { class: 'btn btn-sm btn-primary', onclick: async () => {
+        if (canPrompt()) { if (await promptInstall()) card.remove(); } else showInstallHelp();
+      } }, isIOS() && !canPrompt() ? 'Как?' : 'Установить'),
+      h('button', { class: 'icon-btn sm plain', 'aria-label': 'Скрыть', onclick: () => { dismissInstall(); card.remove(); } }, icon('x', 'i-s')));
+    box.append(card);
+  }
+  // Слово дня — одно и то же весь день, каждый день новое.
+  // Берём слова из пройденных юнитов и ближайшего следующего — без «спойлеров» далёких тем.
+  let reach = units.get('u02')?.order ?? 0;
+  for (const u of units.values()) if (u.lessons.some((l) => lessonDone(l.id))) reach = Math.max(reach, u.order + 1);
+  const pool = allMainWords().filter((w) => emojiOf(w) && units.get(w.unitId).order <= reach);
+  if (pool.length) {
+    const w = pool[(today() * 7919) % pool.length];
+    const inSrs = !!state.srs[w.id];
+    const add = inSrs ? null : h('button', { class: 'btn btn-sm', onclick: (e) => { addWords([w.id]); e.currentTarget.replaceWith(h('span', { class: 'small muted' }, '✓ в повторении')); } }, '+ В повторение');
+    box.append(h('div', { class: 'wotd' },
+      h('div', { class: 'row' },
+        h('div', { class: 'grow' }, h('div', { class: 'wotd-label' }, '✨ СЛОВО ДНЯ'),
+          h('div', { class: 'wotd-ko ko' }, w.ko), h('span', { class: 'rom' }, w.rom), h('div', { class: 'sub' }, w.ru)),
+        h('div', { class: 'col', style: { alignItems: 'center', gap: '6px' } }, h('span', { class: 'wotd-emoji' }, emojiOf(w)), speakBtn(w.ko))),
+      add ? h('div', { class: 'mt-s' }, add) : null));
+  }
+  return box;
+}
 
 function skyline() {
   // Силуэт ночного города с телебашней на холме и светящимися окнами.
@@ -182,6 +226,7 @@ export function mapScreen(params, query) {
   const el = h('div', null,
     hero(),
     continueCard(),
+    homeCards(),
     ...course.data.lines.map((line) => lineSection(line, curFor(line.id))),
     h('div', { class: 'center mt-l' }, mascot('sleep', 70), h('p', { class: 'small muted' }, '한밤 · Ханбам — корейский с нуля до A2')));
   return {
