@@ -105,7 +105,7 @@ for (const uid of course.lines.flatMap((l) => l.units)) {
 }
 // Законные исключения: вставка ㄴ (십육 [심뉵], 지하철역 [지하철력]), в существительных
 // придыхание после ㄱ/ㄷ/ㅂ не отражается (식후 sikhu), 맛없다 [마덥따] — отдельная морфема.
-const EXCEPT = ['맛없다', '십육', '지하철역', '식후'];
+const EXCEPT = ['맛없다', '십육', '지하철역', '식후', '집안일', '다운로드', '붙였'];
 let bad = 0;
 for (const it of items) {
   const auto = romanize(it.ko);

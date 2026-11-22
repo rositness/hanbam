@@ -1,6 +1,6 @@
 // Service worker: офлайн-режим.
 // При изменении кода увеличьте VERSION — пользователи увидят «Доступна новая версия».
-const VERSION = 'v1.2.0';
+const VERSION = 'v1.3.0';
 const CACHE = 'hanbam-' + VERSION;
 const FONT_CACHE = 'hanbam-fonts';
 const AUDIO_CACHE = 'hanbam-audio';   // записи озвучки не удаляются при обновлении версии
