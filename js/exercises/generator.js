@@ -2,7 +2,7 @@
 // (слова, предложения, пропуски, буквы), а упражнения строятся здесь автоматически.
 // Каждое упражнение — простой JSON-объект: его можно сохранить в «ошибки» и показать снова.
 
-import { units, lessons, hangul, lessonWords, unitWords, allMainWords, lettersUpTo } from '../core/content.js';
+import { units, lessons, hangul, lessonWords, unitWords, allMainWords, lettersUpTo, emojiOf } from '../core/content.js';
 import { state } from '../core/store.js';
 import { shuffle, sample, distractors, uniqueBy } from '../core/utils.js';
 import { decomposeSyllable, romanizeSyllable, isSyllable, CHO, JUNG } from '../core/hangul.js';
@@ -12,21 +12,52 @@ const reveal = (x) => ({ ko: x.ko, rom: x.rom, ru: x.ru });
 export const tokenize = (ko) => ko.replace(/[.,!?~…]/g, '').split(/\s+/).filter(Boolean);
 
 // ---------- Слова и предложения ----------
-function wordPool(unit) {
-  const own = unitWords(unit);
-  return own.length >= 8 ? own.concat(sample(allMainWords(), 20)) : own.concat(allMainWords());
+function wordPool(unit, lesson) {
+  const first = lesson ? shuffle(lessonWords(lesson)) : [];
+  const own = shuffle(unitWords(unit));
+  const rest = shuffle(allMainWords()).slice(0, 30);
+  const pool = uniqueBy([...first, ...own, ...rest], (w) => w.id);
+  pool.tiers = [first, own, rest];
+  return pool;
+}
+// Обманки: если пул упорядочен (сначала слова урока), берём по порядку, иначе — случайно.
+function pickWrong(w, pool, key) {
+  if (!pool.tiers) return distractors(w, pool, 3, key);
+  const seen = new Set([key(w)]), out = [];
+  for (const tier of pool.tiers) for (const x of shuffle(tier)) {
+    const k = key(x);
+    if (out.length < 3 && !seen.has(k)) { seen.add(k); out.push(x); }
+  }
+  return out;
 }
 
 export function exChoiceKoRu(w, pool, unitId) {
-  const opts = shuffle([w, ...distractors(w, pool, 3, (x) => x.ru)]).map((x) => ({ t: x.ru }));
+  const opts = shuffle([w, ...pickWrong(w, pool, (x) => x.ru)]).map((x) => ({ t: x.ru, em: emojiOf(x) }));
   return { type: 'choice', key: 'kr:' + w.id, unitId, instr: 'Что это значит?', q: { ko: w.ko, rom: w.rom, audio: w.ko }, opts, ans: w.ru, reveal: reveal(w), wordId: w.id };
 }
 export function exChoiceRuKo(w, pool, unitId) {
-  const opts = shuffle([w, ...distractors(w, pool, 3, (x) => x.ko)]).map((x) => ({ t: x.ko, sub: x.rom }));
-  return { type: 'choice', key: 'rk:' + w.id, unitId, instr: 'Как сказать по-корейски?', q: { ru: w.ru }, opts, ans: w.ko, reveal: reveal(w), wordId: w.id };
+  const opts = shuffle([w, ...pickWrong(w, pool, (x) => x.ko)]).map((x) => ({ t: x.ko, sub: x.rom }));
+  return { type: 'choice', key: 'rk:' + w.id, unitId, instr: 'Как сказать по-корейски?', q: { ru: w.ru, emoji: emojiOf(w) }, opts, ans: w.ko, reveal: reveal(w), wordId: w.id };
+}
+// Карточка нового слова (без оценки): картинка, слово, звук, пример из урока.
+export function exLearn(w, lesson, unitId) {
+  const stem = w.ko.replace(/다$/, '');
+  const ex = lesson.sentences.find((s) => s.ko.includes(stem)) || null;
+  return { type: 'learn', key: 'learn:' + w.id, unitId, instr: 'Знакомьтесь!', ko: w.ko, rom: w.rom, ru: w.ru, emoji: emojiOf(w), example: ex, noMistake: true };
+}
+// Обратный перевод (как в English Galaxy): корейская фраза → собрать русский перевод из слов.
+export const tokenizeRu = (ru) => ru.replace(/[.,!?…«»"—–:;()]/g, ' ').split(/\s+/).filter(Boolean);
+export function exBuildRu(s, ruPool, unitId) {
+  const answer = tokenizeRu(s.ru);
+  const low = answer.map((t) => t.toLowerCase());
+  const extras = distractors(null, ruPool.filter((t) => !low.includes(t.toLowerCase())), 2, (t) => t.toLowerCase());
+  return {
+    type: 'build', lang: 'ru', key: 'br:' + s.ko, unitId, instr: 'Переведите на русский',
+    q: { ko: s.ko, rom: s.rom, audio: s.ko }, answer, tiles: shuffle([...answer, ...extras]), reveal: { ko: s.ko, rom: s.rom, ru: s.ru },
+  };
 }
 export function exListenChoice(w, pool, unitId) {
-  const opts = shuffle([w, ...distractors(w, pool, 3, (x) => x.ko)]).map((x) => ({ t: x.ko, sub: x.ru }));
+  const opts = shuffle([w, ...pickWrong(w, pool, (x) => x.ko)]).map((x) => ({ t: x.ko, sub: x.ru }));
   return { type: 'choice', key: 'lc:' + w.id, unitId, instr: 'Что вы слышите?', q: { audio: w.ko, hideText: true }, opts, ans: w.ko, reveal: reveal(w), hideSubUntilAnswer: true, wordId: w.id };
 }
 export function exMatch(ws, unitId) {
@@ -58,28 +89,35 @@ export function exSpeak(s, unitId) {
 
 const shortWords = (ws) => ws.filter((w) => [...w.ko.replace(/\s/g, '')].length <= 4 && !/[^가-힣\s]/.test(w.ko));
 
-export function genWordLesson(lesson) {
+// Урок строится как у лучших приложений: сначала знакомство со словами небольшими порциями
+// (карточка → сразу практика), потом грамматика, сборка фраз в обе стороны, письмо и речь.
+export function genWordLesson(lesson, { intro = !lessonDone(lesson.id) } = {}) {
   const unit = units.get(lesson.unitId);
   const uid = unit.id;
-  const W = shuffle(lessonWords(lesson));
-  const pool = wordPool(unit);
+  const W = lessonWords(lesson);
+  const pool = wordPool(unit, lesson);
   const ex = [];
-  const at = (i) => W[i % W.length];
-  if (W.length) {
-    for (let i = 0; i < Math.min(4, W.length); i++) ex.push(exChoiceKoRu(at(i), pool, uid));
-    for (let i = 4; i < 6; i++) ex.push(exListenChoice(at(i), pool, uid));
-    for (let i = 6; i < 9; i++) ex.push(exChoiceRuKo(at(i), pool, uid));
-    if (W.length >= 4) ex.push(exMatch(sample(W, Math.min(5, W.length)), uid));
+  const kinds = [exChoiceKoRu, exListenChoice, exChoiceRuKo];
+  let k = 0;
+  for (let i = 0; i < W.length; i += 3) {
+    const chunk = W.slice(i, i + 3);
+    if (intro) chunk.forEach((w) => ex.push(exLearn(w, lesson, uid)));
+    shuffle(chunk).forEach((w) => ex.push(kinds[k++ % kinds.length](w, pool, uid)));
   }
+  if (W.length >= 4) ex.push(exMatch(sample(W, Math.min(5, W.length)), uid));
   lesson.drills.forEach((d) => ex.push(exFill(d, uid)));
   const S = shuffle(lesson.sentences);
   const extra = unit.lessons.flatMap((l) => l.sentences).flatMap((s) => tokenize(s.ko));
+  const ruPool = unit.lessons.flatMap((l) => l.sentences).flatMap((s) => tokenizeRu(s.ru));
   const buildable = S.filter((s) => tokenize(s.ko).length >= 2);
-  buildable.slice(0, 3).forEach((s) => ex.push(exBuild(s, extra, uid)));
-  if (buildable[3]) ex.push(exBuild(buildable[3], extra, uid, true));
-  const tw = shortWords(W);
+  const ruBuildable = S.filter((s) => { const n = tokenizeRu(s.ru).length; return n >= 2 && n <= 6; });
+  buildable.slice(0, 2).forEach((s) => ex.push(exBuild(s, extra, uid)));
+  ruBuildable.filter((s) => !buildable.slice(0, 2).includes(s)).slice(0, 2).forEach((s) => ex.push(exBuildRu(s, ruPool, uid)));
+  if (buildable[2]) ex.push(exBuild(buildable[2], extra, uid, true));
+  if (buildable[3]) ex.push(exBuild(buildable[3], extra, uid));
+  const tw = shortWords(shuffle(W));
   tw.slice(0, 2).forEach((w) => ex.push(exType(w, uid)));
-  const sp = S.find((s) => !buildable.slice(0, 1).includes(s)) || S[0];
+  const sp = S.find((s) => !buildable.slice(0, 2).includes(s)) || S[0];
   if (sp && state.settings.speak) ex.push(exSpeak(sp, uid));
   return ex;
 }
@@ -89,11 +127,14 @@ const letterOf = (ch) => hangul.byChar.get(ch);
 
 function exLetterSound(L, known, unitId) {
   const opts = shuffle([L, ...distractors(L, known, 3, (x) => x.rom)]).map((x) => ({ t: x.rom, sub: x.ru }));
-  return { type: 'choice', key: 'hs:' + L.ch, unitId, instr: 'Как читается эта буква?', q: { ko: L.ch, big: true, audio: L.say }, opts, ans: L.rom, noRom: true, reveal: { ko: L.ch, rom: L.rom, ru: L.hint } };
+  return { type: 'choice', key: 'hs:' + L.ch, unitId, instr: 'Как читается эта буква?', q: { ko: L.ch, big: true, audio: L.say }, opts, ans: L.rom, noRom: true, reveal: { ko: L.ch, rom: L.rom, ru: L.hint, say: L.say } };
+}
+function exLearnLetter(L, unitId) {
+  return { type: 'learn', letter: true, key: 'learnL:' + L.ch, unitId, instr: 'Знакомьтесь!', ko: L.ch, rom: L.rom, ru: L.ru, hint: L.hint, say: L.say, name: L.name, example: L.example ? { ko: L.example[0], rom: L.example[1], ru: L.example[2] } : null, noMistake: true };
 }
 function exLetterListen(L, known, unitId) {
   const opts = shuffle([L, ...distractors(L, known, 3, (x) => x.ch)]).map((x) => ({ t: x.ch, big: true }));
-  return { type: 'choice', key: 'hl:' + L.ch, unitId, instr: 'Какую букву вы слышите?', q: { audio: L.say, hideText: true }, opts, ans: L.ch, reveal: { ko: L.ch + ' — ' + L.say, rom: L.rom, ru: L.hint } };
+  return { type: 'choice', key: 'hl:' + L.ch, unitId, instr: 'Какую букву вы слышите?', q: { audio: L.say, hideText: true }, opts, ans: L.ch, reveal: { ko: L.ch, rom: L.rom, ru: L.hint, say: L.say } };
 }
 function exRead(r, pool, unitId) {
   const opts = shuffle([r, ...distractors(r, pool, 3, (x) => x.rom)]).map((x) => ({ t: x.rom }));
@@ -138,7 +179,7 @@ function syllablesFor(lesson, letters) {
   return [...new Set(out)];
 }
 
-export function genHangulLesson(lesson) {
+export function genHangulLesson(lesson, { intro = !lessonDone(lesson.id) } = {}) {
   const uid = lesson.unitId;
   const L = lesson.letters.map(letterOf).filter(Boolean);
   const known = lettersUpTo(lesson.id).map(letterOf).filter(Boolean);
@@ -146,7 +187,11 @@ export function genHangulLesson(lesson) {
   const reads = lesson.read;
   const readPool = uniqueBy([...reads, ...[...lessons.values()].filter((x) => x.kind === 'hangul').flatMap((x) => x.read)], (x) => x.ko);
   const ex = [];
-  shuffle(L).forEach((l) => ex.push(exLetterSound(l, knownSame(l).length >= 4 ? knownSame(l) : known, uid)));
+  // Каждая новая буква: карточка-знакомство, затем сразу вопрос на её звук.
+  (intro ? L : shuffle(L)).forEach((l) => {
+    if (intro) ex.push(exLearnLetter(l, uid));
+    ex.push(exLetterSound(l, knownSame(l).length >= 4 ? knownSame(l) : known, uid));
+  });
   shuffle(L).slice(0, 4).forEach((l) => ex.push(exLetterListen(l, knownSame(l).length >= 4 ? knownSame(l) : known, uid)));
   lesson.pairs.forEach((g) => ex.push(exMinimal(g, uid)));
   L.slice(0, 2).forEach((l) => ex.push(exTrace(l, uid)));
@@ -164,7 +209,7 @@ export const genLesson = (lesson) => (lesson.kind === 'hangul' ? genHangulLesson
 // ---------- Итоговый тест юнита ----------
 export function genUnitTest(unit) {
   if (unit.kind === 'hangul') {
-    const all = unit.lessons.flatMap(genHangulLesson).filter((e) => e.type !== 'trace');
+    const all = unit.lessons.flatMap((l) => genHangulLesson(l, { intro: false })).filter((e) => e.type !== 'trace');
     return markTest(sample(all, 15));
   }
   const uid = unit.id;
@@ -189,13 +234,13 @@ const markTest = (ex) => ex.map((e) => ({ ...e, test: true }));
 export function genPractice(n = 12) {
   const done = [...lessons.values()].filter((l) => lessonDone(l.id) && l.kind !== 'hangul');
   const src = done.length ? done : [[...lessons.values()].find((l) => l.kind !== 'hangul')];
-  const all = shuffle(src).slice(0, 6).flatMap(genWordLesson).filter((e) => e.type !== 'speak' || state.settings.speak);
+  const all = shuffle(src).slice(0, 6).flatMap((l) => genWordLesson(l, { intro: false })).filter((e) => e.type !== 'speak' || state.settings.speak);
   return sample(all, n);
 }
 
 export function genHangulQuiz(n = 12) {
   const done = [...lessons.values()].filter((l) => l.kind === 'hangul' && lessonDone(l.id));
   const src = done.length ? done : [...lessons.values()].filter((l) => l.kind === 'hangul').slice(0, 3);
-  const all = src.flatMap(genHangulLesson).filter((e) => e.type !== 'trace');
+  const all = src.flatMap((l) => genHangulLesson(l, { intro: false })).filter((e) => e.type !== 'trace');
   return sample(all, n);
 }

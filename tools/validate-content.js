@@ -33,6 +33,8 @@ const course = load(path.join(root, 'course.json'));
 const hangul = load(path.join(root, 'hangul.json'));
 const letters = new Set(hangul.letters.map((l) => l.ch));
 const rules = new Set(hangul.rules.map((r) => r.id));
+const voices = load(path.join(root, 'voices.json')) || { M: [], F: [] };
+const known = new Set([...(voices.M || []), ...(voices.F || [])]);
 
 const lessonIds = new Set();
 const words = new Map();
@@ -89,6 +91,7 @@ for (const line of course.lines) {
           nLines++;
           if (ln.length !== 4) err(`${W} диалог ${i + 1}`, 'реплика: [кто, корейский, романизация, перевод]');
           else checkTriple(`${W} диалог ${i + 1}`, ln.slice(1));
+          if (!known.has(ln[0])) warn(W, `персонаж «${ln[0]}» не указан в content/voices.json — будет женский голос`);
         }
       } else warn(W, 'нет диалога');
     }

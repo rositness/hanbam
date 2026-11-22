@@ -6,9 +6,10 @@ import { lessons, units, hangul, lessonWords } from '../core/content.js';
 import { navigate } from '../core/router.js';
 import { romEl, speakBtn, toast } from '../core/ui.js';
 import { genLesson, genUnitTest } from '../exercises/generator.js';
-import { runSession, resultView } from './session.js';
+import { runSession, resultView, streakView } from './session.js';
 import { dialogView } from './dialog.js';
-import { recordLesson, recordTest, addXP, lessonUnlocked, testUnlocked, todayXP, levelInfo } from '../core/game.js';
+import { recordLesson, recordTest, addXP, lessonUnlocked, testUnlocked, todayXP, levelInfo, streakActiveToday } from '../core/game.js';
+import { emojiOf } from '../core/content.js';
 import { addWords } from '../core/srs.js';
 import { pl } from '../core/utils.js';
 
@@ -72,8 +73,9 @@ function theoryView(lesson, onStart) {
     if (lesson.grammar) parts.push(grammarBox(lesson.grammar, unit.id));
     const W = lessonWords(lesson);
     if (W.length) {
-      parts.push(h('div', { class: 'section-title' }, `Новые слова · ${W.length}`));
-      parts.push(h('div', { class: 'word-list' }, W.map((w) => wordRow(w, unit.id))));
+      parts.push(h('div', { class: 'section-title' }, `В уроке ${W.length} новых слов — познакомимся с каждым`));
+      parts.push(h('div', { class: 'lesson-chips' }, W.map((w) => h('button', { class: 'chip', onclick: () => import('../core/tts.js').then((m) => m.speak(w.ko)) },
+        emojiOf(w) || '•', ' ', h('span', { class: 'ko' }, w.ko), h('span', { class: 'muted', style: { fontWeight: 500 } }, ' — ' + w.ru)))));
     }
   }
   return h('div', { class: 'col' },
@@ -102,14 +104,19 @@ export function lessonScreen({ id }) {
         let xp = 10 + Math.round(r.accuracy * 5) + (r.accuracy >= 1 ? 5 : 0) + Math.floor(r.maxCombo / 5);
         if (!first) xp = Math.max(3, Math.round(xp / 2));
         const newWords = lesson.kind === 'hangul' ? 0 : addWords(lesson.words);
+        const streakWasActive = streakActiveToday();
         addXP(xp, 'lesson');
+        const afterResult = () => {
+          if (!streakWasActive && streakActiveToday()) { root.replaceChildren(streakView(state.stats.streak.count, state.stats.history, () => close(lesson.unitId))); window.scrollTo({ top: 0 }); }
+          else close(lesson.unitId);
+        };
         const result = () => resultView({
           emoji: r.accuracy >= 1 ? '💎' : r.accuracy >= 0.8 ? '🎉' : '👍',
           title: r.accuracy >= 1 ? 'Идеально!' : 'Урок пройден!',
           subtitle: lesson.title,
           accuracy: r.accuracy, xp,
           stats: [[`${todayXP()}/${state.settings.dailyGoal}`, 'цель дня'], newWords ? [String(newWords), 'новых слов'] : [`🔥${state.stats.streak.count}`, 'серия']],
-          primary: h('button', { class: 'btn btn-primary btn-block btn-lg', onclick: () => close(lesson.unitId) }, 'Продолжить'),
+          primary: h('button', { class: 'btn btn-primary btn-block btn-lg', onclick: afterResult }, 'Продолжить'),
           secondary: r.wrong.length ? h('button', { class: 'btn btn-ghost btn-block', onclick: () => navigate('/review/mistakes') }, `Разобрать ошибки (${r.wrong.length})`) : null,
         });
         if (lesson.dialog) {

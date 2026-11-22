@@ -1,12 +1,13 @@
-// Главная: «ночной Сеул» и карта линий метро с юнитами и уроками.
+// Главная: «ночной Сеул» и игровой путь по линиям метро.
 
-import { h, icon, progressRing } from '../core/dom.js';
+import { h, icon } from '../core/dom.js';
 import { state } from '../core/store.js';
 import { course, units, lessons, getLine } from '../core/content.js';
 import { navigate } from '../core/router.js';
-import { toast, starsEl } from '../core/ui.js';
+import { toast, starsEl, openSheet } from '../core/ui.js';
 import { lessonDone, testPassed, nodeUnlocked, unitProgress, lineUnlocked, nextNodes, levelInfo, todayXP, streakActiveToday } from '../core/game.js';
 import { greeting } from '../core/utils.js';
+import { mascot } from '../core/mascot.js';
 
 function skyline() {
   // Силуэт ночного города с телебашней на холме и светящимися окнами.
@@ -42,11 +43,13 @@ function hero() {
       h('div', { class: 'h1' }, `${greeting()}${state.settings.name ? ', ' + state.settings.name : ''}`),
       h('div', { class: 'row mt-s', style: { maxWidth: '320px' } },
         h('div', { class: 'bar grow', style: { background: 'rgba(255,255,255,.18)' } }, h('span', { style: { width: Math.min(100, (tx / goal) * 100) + '%' } })),
-        h('span', { class: 'small', style: { fontWeight: 800 } }, `${tx}/${goal} XP`))),
+        h('span', { class: 'small', style: { fontWeight: 800 } }, tx >= goal ? '🎯 цель дня!' : `${tx}/${goal} XP`))),
   );
   el.insertAdjacentHTML('beforeend', skyline());
   return el;
 }
+
+const nodeHref = (n) => (n.type === 'test' ? `/test/${n.id}` : `/lesson/${n.id}`);
 
 function nodeTitle(n) {
   if (n.type === 'test') return { title: 'Итоговый тест', sub: units.get(n.unitId).title };
@@ -61,101 +64,133 @@ function continueCard() {
       h('div', { class: 'grow' }, h('div', { class: 'h3' }, 'Курс пройден!'), h('div', { class: 'sub' }, 'Повторяйте слова, чтобы не забыть.')),
       h('button', { class: 'btn btn-primary btn-sm', onclick: () => navigate('/review') }, 'Повтор'));
   }
-  // хангыль — первым, пока он не пройден хотя бы наполовину
   const n = next[0];
   const unit = units.get(n.unitId);
   const t = nodeTitle(n);
-  const go = () => navigate(n.type === 'test' ? `/test/${n.id}` : `/lesson/${n.id}`);
+  const go = () => navigate(nodeHref(n));
   const card = h('div', { class: 'continue-card' },
     h('div', { class: 'ci ko', style: { background: `linear-gradient(135deg, ${unit.color}, var(--accent))` } }, unit.icon),
-    h('div', { class: 'grow' }, h('div', { class: 'small muted', style: { fontWeight: 700 } }, 'ПРОДОЛЖИТЬ'), h('div', { class: 'h3' }, t.title), h('div', { class: 'sub small' }, t.sub)),
+    h('div', { class: 'grow' }, h('div', { class: 'small muted', style: { fontWeight: 800, letterSpacing: '.06em' } }, 'ПРОДОЛЖИТЬ'), h('div', { class: 'h3' }, t.title), h('div', { class: 'sub small' }, t.sub)),
     h('button', { class: 'icon-btn accent', 'aria-label': 'Начать', onclick: go }, icon('play')));
   card.addEventListener('click', (e) => { if (!e.target.closest('button')) go(); });
   const extra = next[1] ? (() => {
     const n2 = next[1]; const t2 = nodeTitle(n2); const u2 = units.get(n2.unitId);
-    return h('button', { class: 'list-row mt-s', onclick: () => navigate(n2.type === 'test' ? `/test/${n2.id}` : `/lesson/${n2.id}`) },
+    return h('button', { class: 'list-row mt-s', onclick: () => navigate(nodeHref(n2)) },
       h('div', { class: 'lr-icon', style: { background: `color-mix(in srgb, ${u2.color} 25%, transparent)` } }, h('span', { class: 'ko' }, u2.icon)),
       h('div', { class: 'grow' }, h('div', { style: { fontWeight: 700 } }, t2.title), h('div', { class: 'small muted' }, `${getLine(u2.lineId).title} · ${t2.sub}`)), icon('right', 'i-s'));
   })() : null;
   return h('div', null, card, extra);
 }
 
-function stopEl(n, line, currentKey) {
+// Нижний лист с информацией об уроке.
+function nodeSheet(n, unit) {
   const unlocked = nodeUnlocked(n);
   const done = n.type === 'lesson' ? lessonDone(n.id) : testPassed(n.id);
-  const isCur = `${n.type}:${n.id}` === currentKey;
   const t = nodeTitle(n);
-  let right = null;
-  if (n.type === 'test') { const tp = state.progress.tests[n.id]; right = tp ? starsEl(tp.stars) : null; }
-  else if (done) { const best = state.progress.lessons[n.id].best; right = h('span', { class: 'small muted' }, Math.round(best * 100) + '%'); }
-  const num = n.type === 'test' ? icon('trophy', 'i-s') : !unlocked ? icon('lock', 'i-s') : done ? icon('check', 'i-s') : String(lessons.get(n.id).index + 1);
-  const b = h('button', { class: `stop${done ? ' done' : ''}${!unlocked ? ' locked' : ''}${isCur ? ' current' : ''}${n.type === 'test' ? ' test' : ''}` },
-    h('span', { class: 's-num' }, num),
-    h('span', { class: 'grow' }, h('div', { class: 's-title' }, t.title), n.type === 'lesson' && lessons.get(n.id).goal ? h('div', { class: 's-sub' }, lessons.get(n.id).goal) : null),
-    right);
-  b.addEventListener('click', () => {
-    if (!unlocked) { toast(n.type === 'test' ? 'Тест откроется после всех уроков юнита' : 'Сначала пройдите предыдущий урок', { icon: '🔒' }); return; }
-    navigate(n.type === 'test' ? `/test/${n.id}` : `/lesson/${n.id}`);
-  });
-  return b;
+  const l = n.type === 'lesson' ? lessons.get(n.id) : null;
+  const tp = n.type === 'test' ? state.progress.tests[n.id] : null;
+  const best = l && state.progress.lessons[n.id]?.best;
+  const xp = n.type === 'test' ? 35 : done ? 8 : 18;
+  let s = null;
+  const content = h('div', { class: 'col gap-l' },
+    h('div', { class: 'lesson-sheet-head' },
+      h('div', { class: 'lesson-sheet-icon ko', style: { background: unlocked ? `linear-gradient(135deg, ${unit.color}, var(--accent))` : 'var(--surface-3)' } },
+        n.type === 'test' ? '🏆' : unlocked ? (done ? '✓' : String(l.index + 1)) : '🔒'),
+      h('div', { class: 'grow' },
+        h('div', { class: 'small muted', style: { fontWeight: 800 } }, n.type === 'test' ? unit.title.toUpperCase() : `УРОК ${l.index + 1} · ${unit.title.toUpperCase()}`),
+        h('div', { class: 'h2' }, t.title),
+        l?.goal ? h('div', { class: 'sub' }, '🎯 ', l.goal) : null)),
+    h('div', { class: 'row wrap gap-s' },
+      unlocked ? h('span', { class: 'xp-pill' }, `+${xp} XP`) : null,
+      best ? h('span', { class: 'chip' }, `Лучший результат: ${Math.round(best * 100)}%`) : null,
+      tp ? starsEl(tp.stars) : null,
+      l && l.kind !== 'hangul' && l.words.length ? h('span', { class: 'chip' }, `📚 ${l.words.length} слов`) : null,
+      l?.dialog ? h('span', { class: 'chip' }, '💬 диалог') : null),
+    unlocked
+      ? h('button', { class: 'btn btn-primary btn-block btn-lg', onclick: () => { s.close(); navigate(nodeHref(n)); } }, done ? 'Пройти ещё раз' : 'Начать', icon('right'))
+      : h('div', { class: 'tip' }, '🔒', h('span', null, n.type === 'test' ? 'Тест откроется, когда вы пройдёте все уроки этого юнита.' : 'Сначала пройдите предыдущий урок. Если вы уже что-то знаете — включите «Открыть все уроки» в настройках.')));
+  s = openSheet(content);
 }
 
-const OPEN_KEY = 'hb-open-units';
-function openSet() { try { return new Set(JSON.parse(sessionStorage.getItem(OPEN_KEY) || '[]')); } catch { return new Set(); } }
-function saveOpen(s) { try { sessionStorage.setItem(OPEN_KEY, JSON.stringify([...s])); } catch { /* ignore */ } }
+const OFFSETS = [0, 48, 70, 48, 0, -48, -70, -48];
 
-function lineSection(line, currentKeys, open) {
+function unitSection(unit, line, number, current, offsetStart) {
+  const p = unitProgress(unit);
+  const firstOpen = nodeUnlocked({ type: 'lesson', id: unit.lessons[0].id, unitId: unit.id });
+  const section = h('section', { class: 'path-unit', id: 'unit-' + unit.id, style: { '--line-color': line.color } });
+  section.append(h('button', { class: 'unit-banner' + (firstOpen ? '' : ' locked'), onclick: () => navigate(`/unit/${unit.id}`) },
+    h('div', { class: 'grow' },
+      h('div', { class: 'ub-label' }, unit.kind === 'hangul' ? `Хангыль · часть ${number}` : `Юнит ${number} · ${p.done}/${p.total}`),
+      h('div', { class: 'ub-title' }, unit.title),
+      h('div', { class: 'ub-ko ko' }, unit.ko)),
+    h('span', { class: 'ub-btn', 'aria-label': 'Слова и грамматика юнита' }, icon('book'))));
+
+  const path = h('div', { class: 'path' });
+  const nodes = [...unit.lessons.map((l) => ({ type: 'lesson', id: l.id, unitId: unit.id })), { type: 'test', id: unit.id, unitId: unit.id }];
+  nodes.forEach((n, i) => {
+    const off = OFFSETS[(offsetStart + i) % OFFSETS.length];
+    const unlocked = nodeUnlocked(n);
+    const done = n.type === 'lesson' ? lessonDone(n.id) : testPassed(n.id);
+    const isCur = current && current.type === n.type && current.id === n.id;
+    const l = n.type === 'lesson' ? lessons.get(n.id) : null;
+    const tp = n.type === 'test' ? state.progress.tests[n.id] : null;
+    let inner;
+    if (n.type === 'test') inner = tp?.passed ? '👑' : icon('trophy');
+    else if (!unlocked) inner = icon('lock');
+    else if (done) inner = icon('check');
+    else inner = icon('star');
+    const btn = h('button', {
+      class: `path-node${n.type === 'test' ? ' test' : ''}${!unlocked ? ' locked' : done ? ' done' : ''}${isCur ? ' current' : ''}`,
+      'aria-label': nodeTitle(n).title,
+      onclick: () => nodeSheet(n, unit),
+    }, inner);
+    const wrap = h('div', { class: 'path-node-wrap' + (unlocked ? '' : ' locked'), style: { transform: `translateX(${off}px)` } },
+      isCur ? h('div', { class: 'start-bubble' }, done ? 'ПОВТОРИТЬ' : 'НАЧАТЬ') : null,
+      btn,
+      h('div', { class: 'node-label' }, n.type === 'test' ? (tp ? starsEl(tp.stars) : 'Итоговый тест') : l.title));
+    if (isCur) {
+      const m = mascot('wave', 84, 'bob path-mascot');
+      m.style[off > 0 ? 'right' : 'left'] = 'calc(100% + 16px)';
+      wrap.append(m);
+    }
+    path.append(wrap);
+  });
+  section.append(path);
+  return section;
+}
+
+function lineSection(line, currentByLine) {
   const unlocked = lineUnlocked(line.id);
   const sec = h('section', { style: { '--line-color': line.color } },
-    h('div', { class: 'line-head' },
-      h('span', { class: 'line-badge', style: { background: line.color } }, line.num),
+    h('div', { class: 'line-title' },
+      h('span', { class: 'metro-badge' }, line.num),
       h('div', { class: 'grow' }, h('div', { class: 'h2' }, line.title), h('div', { class: 'sub small' }, line.subtitle)),
       !unlocked ? h('span', { class: 'line-lock' }, icon('lock', 'i-s'), 'закрыто') : null));
-  const metro = h('div', { class: 'metro' });
-  for (const uid of line.units) {
+  if (!unlocked && line.requires) sec.append(h('div', { class: 'tip mt-s' }, '🔒', h('span', null, `Откроется после линии «${getLine(line.requires).title}». Можно открыть всё сразу в настройках.`)));
+  let offset = 0;
+  line.units.forEach((uid, i) => {
     const unit = units.get(uid);
-    const p = unitProgress(unit);
-    const hasCurrent = currentKeys.some((k) => k.unitId === uid);
-    const anyUnlocked = nodeUnlocked({ type: 'lesson', id: unit.lessons[0].id, unitId: uid });
-    const isOpen = open.has(uid) || hasCurrent;
-    const stops = h('div', { class: 'stops' + (isOpen ? '' : ' hidden') });
-    const curKey = currentKeys.find((k) => k.unitId === uid);
-    unit.lessons.forEach((l) => stops.append(stopEl({ type: 'lesson', id: l.id, unitId: uid }, line, curKey && `${curKey.type}:${curKey.id}`)));
-    stops.append(stopEl({ type: 'test', id: uid, unitId: uid }, line, curKey && `${curKey.type}:${curKey.id}`));
-    const card = h('button', { class: 'unit-card', 'aria-expanded': String(isOpen) },
-      h('span', { class: 'u-icon ko' }, unit.icon),
-      h('span', { class: 'grow' }, h('div', { class: 'u-title' }, unit.title), h('div', { class: 'u-ko ko' }, unit.ko, h('span', { class: 'muted' }, ` · ${p.done}/${p.total}`))),
-      progressRing(p.ratio, { size: 40, stroke: 4, color: line.color, label: p.ratio >= 1 ? '✓' : '' }));
-    card.addEventListener('click', () => {
-      const nowOpen = stops.classList.toggle('hidden') === false;
-      card.setAttribute('aria-expanded', String(nowOpen));
-      if (nowOpen) open.add(uid); else open.delete(uid);
-      saveOpen(open);
-    });
-    stops.append(h('button', { class: 'btn btn-ghost btn-sm', style: { alignSelf: 'flex-start' }, onclick: () => navigate(`/unit/${uid}`) },
-      unit.kind === 'hangul' ? 'Буквы и слова юнита' : 'Слова, фразы и грамматика юнита', icon('right', 'i-s')));
-    metro.append(h('div', { class: `unit-block${p.ratio >= 1 ? ' done' : ''}${!anyUnlocked ? ' locked' : ''}`, id: 'unit-' + uid },
-      h('span', { class: 'station-dot' }), card, stops));
-  }
-  sec.append(metro);
-  if (!unlocked && line.requires) sec.append(h('div', { class: 'tip' }, '🔒', h('span', null, `Откроется после прохождения линии «${getLine(line.requires).title}». Можно открыть всё сразу в настройках.`)));
+    sec.append(unitSection(unit, line, i + 1, currentByLine, offset));
+    offset += unit.lessons.length + 1;
+  });
   return sec;
 }
 
 export function mapScreen(params, query) {
-  const open = openSet();
-  if (query?.get('u')) open.add(query.get('u'));
   const current = nextNodes();
+  const curFor = (lineId) => current.find((n) => units.get(n.unitId).lineId === lineId);
   const el = h('div', null,
     hero(),
     continueCard(),
-    ...course.data.lines.map((line) => lineSection(line, current, open)),
-    h('p', { class: 'center small muted mt-l' }, '한밤 · Ханбам — корейский с нуля до A2'));
+    ...course.data.lines.map((line) => lineSection(line, curFor(line.id))),
+    h('div', { class: 'center mt-l' }, mascot('sleep', 70), h('p', { class: 'small muted' }, '한밤 · Ханбам — корейский с нуля до A2')));
   return {
     el,
     mounted() {
       const u = query?.get('u');
-      if (u) document.getElementById('unit-' + u)?.scrollIntoView({ block: 'center' });
+      if (u) document.getElementById('unit-' + u)?.scrollIntoView({ block: 'start' });
     },
   };
 }
+
+export { toast };

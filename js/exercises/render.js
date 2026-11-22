@@ -4,7 +4,7 @@
 // и возвращает { el, check?(): res, destroy?() }.
 // res = { correct, note?, skipped? }
 
-import { h, icon } from '../core/dom.js';
+import { h, icon, richText } from '../core/dom.js';
 import { state, update } from '../core/store.js';
 import { speak, bindSpeakButton, stopSpeaking } from '../core/tts.js';
 import { romEl, sfx, haptic } from '../core/ui.js';
@@ -36,18 +36,20 @@ function question(q, ex) {
         ex.noRom ? null : romEl(q.rom, ex.unitId)));
   }
   const sp = q.audio && q.showAudio ? bindSpeakButton(h('button', { class: 'icon-btn' }, icon('volume')), q.audio) : null;
-  return h('div', { class: 'q-card' }, sp, h('div', { class: 'q-ru grow' }, q.ru));
+  return h('div', { class: 'q-card' }, sp, q.emoji ? h('span', { class: 'q-emoji' }, q.emoji) : null, h('div', { class: 'q-ru grow' }, q.ru));
 }
 
 // ---------- Выбор ответа ----------
 function choice(ex, api) {
   let selected = null;
   const isKo = ex.opts.some((o) => hasHangul(o.t));
-  const two = ex.opts.length === 4 && ex.opts.every((o) => [...o.t].length <= (isKo ? 8 : 14));
+  const withEm = ex.opts.filter((o) => o.em).length >= 3;
+  const two = ex.opts.length === 4 && (withEm || ex.opts.every((o) => [...o.t].length <= (isKo ? 8 : 14)));
   const grid = h('div', { class: 'options' + (two ? ' two' : '') });
   const btns = ex.opts.map((o) => {
     const showSub = o.sub && !ex.hideSubUntilAnswer && (!isKo || !o.sub || romAllowed(ex));
-    const b = h('button', { class: 'option', type: 'button' },
+    const b = h('button', { class: 'option' + (withEm ? ' has-emoji' : ''), type: 'button' },
+      withEm ? h('span', { class: 'emoji' }, o.em || '💬') : null,
       h('span', { class: (hasHangul(o.t) ? 'ko' : '') , lang: hasHangul(o.t) ? 'ko' : null, style: o.big ? { fontSize: '34px' } : null }, o.t),
       showSub ? h('span', { class: 'opt-sub' + (isKo ? ' rom-sub' : '') }, o.sub) : null,
       ex.hideSubUntilAnswer && o.sub ? h('span', { class: 'opt-sub hidden', dataset: { later: '1' } }, o.sub) : null);
@@ -122,12 +124,14 @@ function build(ex, api) {
   const chosen = [];
   const answerBox = h('div', { class: 'build-answer' });
   const bank = h('div', { class: 'build-bank' });
+  const ru = ex.lang === 'ru';
+  const tileCls = ru ? 'tile' : 'tile ko';
   const tiles = ex.tiles.map((t, idx) => {
-    const b = h('button', { class: 'tile ko', type: 'button', lang: 'ko' }, t);
+    const b = h('button', { class: tileCls, type: 'button', lang: ru ? 'ru' : 'ko' }, t);
     b.addEventListener('click', () => {
       sfx.tap();
       b.classList.add('used');
-      const copy = h('button', { class: 'tile ko', type: 'button', lang: 'ko' }, t);
+      const copy = h('button', { class: tileCls, type: 'button', lang: ru ? 'ru' : 'ko' }, t);
       const entry = { idx, t, el: copy };
       copy.addEventListener('click', () => {
         chosen.splice(chosen.indexOf(entry), 1);
@@ -136,7 +140,7 @@ function build(ex, api) {
       });
       chosen.push(entry);
       answerBox.append(copy);
-      if (chosen.length <= 6) speak(t);
+      if (!ru && chosen.length <= 6) speak(t);
       refresh();
     });
     return b;
@@ -146,8 +150,8 @@ function build(ex, api) {
   return {
     el: h('div', { class: 'ex-body' }, question(ex.q, ex), answerBox, bank),
     check() {
-      const got = compact(chosen.map((c) => c.t).join(' '));
-      const want = compact(ex.answer.join(' '));
+      const got = compact(chosen.map((c) => c.t).join(' ')).toLowerCase();
+      const want = compact(ex.answer.join(' ')).toLowerCase();
       const correct = got === want;
       answerBox.style.borderColor = correct ? 'var(--ok)' : 'var(--bad)';
       if (!correct) answerBox.classList.add('shake');
@@ -350,7 +354,30 @@ function composeEx(ex, api) {
   };
 }
 
-const RENDERERS = { choice, match, build, fill, type: typeEx, speak: speakEx, trace, compose: composeEx };
+// ---------- Новое слово / новая буква ----------
+function learn(ex, api) {
+  const say = ex.say || ex.ko;
+  const play = bindSpeakButton(h('button', { class: 'icon-btn accent', 'aria-label': 'Прослушать' }, icon('volume')), say);
+  const slow = bindSpeakButton(h('button', { class: 'icon-btn', 'aria-label': 'Медленно' }, icon('turtle')), say, { rate: 0.55 });
+  setTimeout(() => play.click(), 350);
+  api.ready(true);
+  const exm = ex.example;
+  const card = h('div', { class: 'learn-card' },
+    h('span', { class: 'badge gold lc-badge' }, ex.letter ? 'НОВАЯ БУКВА' : 'НОВОЕ СЛОВО'),
+    ex.letter ? null : h('div', { class: 'lc-emoji' }, ex.emoji || '✨'),
+    h('div', { class: 'lc-ko ko', lang: 'ko', style: ex.letter ? { fontSize: '96px' } : null }, ex.ko),
+    h('span', { class: 'rom', style: { fontSize: '17px' } }, ex.rom),
+    h('div', { class: 'lc-ru' }, ex.letter ? '«' + ex.ru + '»' : ex.ru),
+    ex.hint ? h('div', { class: 'lc-hint', html: richText(ex.hint) }) : null,
+    ex.name ? h('div', { class: 'lc-hint' }, 'Название буквы: ', h('b', { class: 'ko' }, ex.name)) : null,
+    h('div', { class: 'row', style: { justifyContent: 'center', marginTop: '6px' } }, play, slow),
+    exm ? h('div', { class: 'lc-example' }, h('div', { class: 'row' },
+      bindSpeakButton(h('button', { class: 'icon-btn sm' }, icon('volume', 'i-s')), exm.ko),
+      h('div', { class: 'grow' }, h('div', { class: 'ko', style: { fontWeight: 600 } }, exm.ko), h('div', { class: 'small sub' }, exm.ru)))) : null);
+  return { el: h('div', { class: 'ex-body' }, card), check: () => ({ correct: true, learn: true }) };
+}
+
+const RENDERERS = { learn,  choice, match, build, fill, type: typeEx, speak: speakEx, trace, compose: composeEx };
 
 export function renderExercise(ex, api) {
   const r = RENDERERS[ex.type];

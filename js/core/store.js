@@ -13,7 +13,8 @@ export function defaults() {
       theme: 'system',       // system | dark | light
       rom: 'auto',           // auto | always | never
       rate: 0.9,             // скорость речи
-      voice: '',             // voiceURI корейского голоса
+      voiceMode: 'neural',   // neural — записи нейроголосов, system — голос устройства
+      voice: '',             // voiceURI системного корейского голоса
       dailyGoal: 20,         // XP в день
       sound: true,
       haptics: true,

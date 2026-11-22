@@ -60,6 +60,7 @@ export async function autoplay({ wrongEvery = 0, max = 80, log = [], delay = 120
         }
         break;
       }
+      case 'learn': check(); break;
       case 'speak': click($$('.ex .btn').find((b) => /Не могу/.test(b.textContent))); break;
       default: log.push('UNKNOWN ' + ex.type); return log;
     }

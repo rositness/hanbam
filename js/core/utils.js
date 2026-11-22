@@ -17,7 +17,7 @@ export function uniqueBy(arr, key) {
 
 // Варианты-обманки: уникальные, не совпадающие с правильным ответом.
 export function distractors(correct, pool, n = 3, key = (x) => x) {
-  const ck = key(correct);
+  const ck = correct == null ? undefined : key(correct);
   const cand = uniqueBy(shuffle(pool).filter((x) => key(x) !== ck), key);
   return cand.slice(0, n);
 }

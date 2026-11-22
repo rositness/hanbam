@@ -7,7 +7,7 @@ import { navigate } from '../core/router.js';
 import { topbar, toast, confirmDialog, openSheet } from '../core/ui.js';
 import { levelInfo, todayXP, ACHIEVEMENTS, lessonDone } from '../core/game.js';
 import { srsCount, today } from '../core/srs.js';
-import { koreanVoices, speak, ttsSupported } from '../core/tts.js';
+import { koreanVoices, speak, recordingCount, downloadAllAudio, audioCachedCount } from '../core/tts.js';
 import { canRecognize } from '../core/speech.js';
 import { downloadJSON } from '../core/utils.js';
 
@@ -142,14 +142,18 @@ export function settingsScreen() {
 
     h('div', { class: 'section-title' }, 'Звук и речь'),
     h('div', { class: 'card', style: { padding: '4px 0' } },
-      setting('Голос', ttsSupported ? (voices.length ? `Найдено корейских голосов: ${voices.length}` : 'Установите корейский голос — см. подсказку ниже') : 'Браузер не поддерживает озвучку', voiceSel),
+      h('div', { class: 'setting', style: { flexDirection: 'column', alignItems: 'stretch' } }, h('div', { class: 'st-title' }, 'Озвучка'),
+        h('div', { class: 'st-desc' }, `Нейроголоса записаны заранее и звучат как носитель языка (${recordingCount()} записей). Голос устройства — запасной вариант.`),
+        segmented('voiceMode', [['neural', '🎙️ Как носитель'], ['system', '📱 Голос устройства']])),
+      offlineAudioRow(),
+      setting('Голос устройства', voices.length ? `Найдено корейских голосов: ${voices.length}` : 'Нет — используется только запись', voiceSel),
       setting('Скорость речи', null, h('div', { class: 'row' }, rate, rateLabel)),
       setting('Проверить голос', null, h('button', { class: 'btn btn-sm', onclick: () => speak('안녕하세요! 만나서 반갑습니다.') }, icon('volume', 'i-s'), 'Тест')),
       setting('Автоозвучка', 'Проигрывать слова в упражнениях автоматически', toggle('autoplay')),
       setting('Упражнения «Скажи вслух»', canRecognize ? 'Распознавание речи доступно' : 'В этом браузере — режим самопроверки', toggle('speak')),
       setting('Звуки интерфейса', null, toggle('sound')),
       setting('Вибрация', null, toggle('haptics'))),
-    !voices.length ? h('div', { class: 'tip mt' }, '🔈', h('div', null,
+    !voices.length && state.settings.voiceMode === 'system' ? h('div', { class: 'tip mt' }, '🔈', h('div', null,
       h('b', null, 'Как установить корейский голос'),
       h('div', { class: 'small' }, 'Android: Настройки → Система → Язык → Синтез речи → Google → установить «Корейский». iPhone: голос уже встроен (Yuna). Windows: Параметры → Время и язык → Речь → Добавить голоса → Корейский. Затем перезапустите браузер.'))) : null,
 
@@ -177,4 +181,25 @@ export function showInstallHelp() {
     h('div', { class: 'card' }, h('b', null, 'iPhone (Safari)'), h('p', { class: 'small sub mt-s' }, 'Кнопка «Поделиться» → «На экран «Домой»» → «Добавить».')),
     h('div', { class: 'card' }, h('b', null, 'Android (Chrome)'), h('p', { class: 'small sub mt-s' }, 'Меню ⋮ → «Установить приложение» или «Добавить на главный экран».')),
     h('p', { class: 'small muted' }, 'После установки приложение открывается как обычное и работает без интернета.')));
+}
+
+function offlineAudioRow() {
+  const total = recordingCount();
+  const desc = h('div', { class: 'st-desc' }, 'Проверяю…');
+  const bar = h('div', { class: 'bar mt-s hidden' }, h('span'));
+  const btn = h('button', { class: 'btn btn-sm' }, icon('download', 'i-s'), 'Скачать');
+  const refresh = async () => {
+    const n = await audioCachedCount();
+    desc.textContent = n >= total && total ? `✓ Вся озвучка сохранена (${n})` : `Около 30 МБ. Сохранено: ${n} из ${total}. Без этого записи скачиваются по мере прослушивания.`;
+    btn.classList.toggle('hidden', n >= total && total > 0);
+  };
+  btn.addEventListener('click', async () => {
+    btn.disabled = true; bar.classList.remove('hidden');
+    const r = await downloadAllAudio((d, t) => { bar.firstChild.style.width = Math.round((d / t) * 100) + '%'; desc.textContent = `Скачиваю: ${d} из ${t}`; });
+    btn.disabled = false;
+    toast(r.failed ? `Скачано ${r.done}, не удалось ${r.failed} — попробуйте ещё раз` : 'Озвучка доступна без интернета', { icon: r.failed ? '⚠️' : '✅' });
+    refresh();
+  });
+  refresh();
+  return h('div', { class: 'setting', style: { flexWrap: 'wrap' } }, h('div', { class: 'st-text' }, h('div', { class: 'st-title' }, 'Озвучка без интернета'), desc, bar), btn);
 }

@@ -2,7 +2,8 @@
 
 import { h, icon } from '../core/dom.js';
 import { update, state } from '../core/store.js';
-import { speak, hasKoreanVoice, ttsSupported } from '../core/tts.js';
+import { speak, recordingCount } from '../core/tts.js';
+import { mascot } from '../core/mascot.js';
 
 export function onboarding(done) {
   let step = 0;
@@ -12,9 +13,11 @@ export function onboarding(done) {
 
   const steps = [
     () => h('div', { class: 'result' },
-      h('div', { class: 'boot-logo ko', style: { animation: 'float 3s ease-in-out infinite' } }, '한밤'),
+      mascot('wave', 130, 'bob'),
+      h('div', { class: 'speech-bubble', style: { marginTop: '-6px' } }, '안녕! Я Бами, буду учить тебя корейскому 🐯'),
+      h('div', { class: 'boot-logo ko', style: { fontSize: '48px' } }, '한밤'),
       h('div', { class: 'h1' }, 'Ханбам'),
-      h('p', { class: 'sub' }, 'Корейский с нуля до разговорного уровня: хангыль, 48 уроков, слова с интервальными повторениями, грамматика и живые диалоги.'),
+      h('p', { class: 'sub' }, 'Корейский с нуля до разговорного уровня: хангыль, 63 урока, 600+ слов с картинками, интервальные повторения, грамматика и живые диалоги с озвучкой носителей.'),
       h('div', { class: 'col', style: { width: '100%', textAlign: 'left' } },
         feat('한', 'Хангыль за неделю', 'Буквы, слоги, прописи и правила чтения'),
         feat('🚇', 'Путь по линиям метро', 'Каждая станция — тема из реальной жизни'),
@@ -34,14 +37,12 @@ export function onboarding(done) {
     () => {
       const status = h('div', { class: 'sub' });
       const check = () => {
-        status.textContent = !ttsSupported ? 'Этот браузер не умеет озвучивать текст. Попробуйте Chrome или Safari.'
-          : hasKoreanVoice() ? 'Корейский голос найден. Вы должны были услышать «안녕하세요».'
-            : 'Корейский голос не найден. Инструкция по установке — в Профиль → Настройки. Учиться можно и без него.';
+        status.textContent = recordingCount() ? 'Вы должны были услышать «안녕하세요» голосом носителя языка. Все слова и диалоги озвучены так же.' : 'Если ничего не слышно — проверьте громкость. Озвучку можно настроить в Профиль → Настройки.';
       };
       setTimeout(check, 600);
       return h('div', { class: 'col gap-l' },
         h('div', { class: 'h1' }, 'Проверим звук'),
-        h('p', { class: 'sub' }, 'Все слова озвучиваются голосом вашего устройства. Включите звук и нажмите кнопку.'),
+        h('p', { class: 'sub' }, 'Все слова, фразы и диалоги озвучены естественными голосами. Включите звук и нажмите кнопку.'),
         h('button', { class: 'mic-btn', onclick: () => { speak('안녕하세요'); setTimeout(check, 800); } }, icon('volume')),
         status,
         h('div', { class: 'tip' }, '🎧', h('span', null, 'Совет: занимайтесь в наушниках и повторяйте вслух каждую фразу — так произношение ставится быстрее.')),
