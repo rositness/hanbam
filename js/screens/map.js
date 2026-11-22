@@ -12,6 +12,7 @@ import { dueCount, today, addWords } from '../core/srs.js';
 import { speakBtn, romEl } from '../core/ui.js';
 import { shouldOfferInstall, canPrompt, promptInstall, dismissInstall, isIOS } from '../core/install.js';
 import { showInstallHelp } from './profile.js';
+import { nextStory } from './stories.js';
 
 // Карточки под «Продолжить»: повторение, установка приложения, слово дня.
 function homeCards() {
@@ -33,6 +34,13 @@ function homeCards() {
       } }, isIOS() && !canPrompt() ? 'Как?' : 'Установить'),
       h('button', { class: 'icon-btn sm plain', 'aria-label': 'Скрыть', onclick: () => { dismissInstall(); card.remove(); } }, icon('x', 'i-s')));
     box.append(card);
+  }
+  const st = nextStory();
+  if (st) {
+    box.append(h('button', { class: 'home-card', onclick: () => navigate(`/story/${st.id}`) },
+      h('span', { class: 'hc-icon', style: { background: 'color-mix(in srgb, var(--accent-3) 20%, transparent)' } }, st.emoji),
+      h('span', { class: 'grow' }, h('div', { class: 'small muted', style: { fontWeight: 800 } }, '📖 НОВАЯ ИСТОРИЯ'), h('div', { style: { fontWeight: 800 } }, st.title)),
+      icon('right', 'i-s')));
   }
   // Слово дня — одно и то же весь день, каждый день новое.
   // Берём слова из пройденных юнитов и ближайшего следующего — без «спойлеров» далёких тем.

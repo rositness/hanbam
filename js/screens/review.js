@@ -8,7 +8,7 @@ import { speak, stopSpeaking } from '../core/tts.js';
 import { romEl, speakBtn, sfx, haptic, emptyState, confirmDialog } from '../core/ui.js';
 import { dueIds, dueCount, srsCount, grade, previewInterval, formatIvl, today } from '../core/srs.js';
 import { addXP } from '../core/game.js';
-import { genPractice, genHangulQuiz } from '../exercises/generator.js';
+import { genPractice, genHangulQuiz, genGrammarPractice } from '../exercises/generator.js';
 import { runSession, resultView } from './session.js';
 import { pl, shuffle } from '../core/utils.js';
 import { koreanKeyboard } from '../exercises/keyboard.js';
@@ -230,6 +230,27 @@ export function practiceSession(params, query) {
         stats: [[`${r.correct}/${r.answered}`, 'верно'], [`🔥${r.maxCombo}`, 'комбо']],
         primary: h('button', { class: 'btn btn-primary btn-block btn-lg', onclick: () => navigate('/review/practice' + (isHangul ? '?hangul=1&' : '?') + 'r=' + Date.now()) }, 'Ещё раунд'),
         secondary: h('button', { class: 'btn btn-ghost btn-block', onclick: () => navigate(isHangul ? '/hangul' : '/review') }, 'Готово'),
+      });
+    },
+  });
+}
+
+// ---------- Тренировка грамматической темы ----------
+export function grammarPractice({ id }) {
+  const lesson = lessons.get(id);
+  if (!lesson?.grammar) return emptyState('📐', 'Тема не найдена', '');
+  return runSession({
+    exercises: genGrammarPractice(lesson),
+    mode: 'practice',
+    onExit: () => navigate(`/grammar/${lesson.grammar.id}`),
+    onDone: (res) => {
+      const xp = Math.max(2, res.correct);
+      addXP(xp, 'grammar');
+      return resultView({
+        emoji: '📐', title: 'Тема отработана', subtitle: lesson.grammar.title, accuracy: res.accuracy, xp,
+        stats: [[`${res.correct}/${res.answered}`, 'верно'], [`🔥${res.maxCombo}`, 'комбо']],
+        primary: h('button', { class: 'btn btn-primary btn-block btn-lg', onclick: () => navigate(`/grammar-practice/${id}?r=${Date.now()}`) }, 'Ещё раз'),
+        secondary: h('button', { class: 'btn btn-ghost btn-block', onclick: () => navigate(`/grammar/${lesson.grammar.id}`) }, 'К теме'),
       });
     },
   });

@@ -1,6 +1,6 @@
 // Service worker: офлайн-режим.
 // При изменении кода увеличьте VERSION — пользователи увидят «Доступна новая версия».
-const VERSION = 'v1.4.0';
+const VERSION = 'v1.5.0';
 const CACHE = 'hanbam-' + VERSION;
 const FONT_CACHE = 'hanbam-fonts';
 const AUDIO_CACHE = 'hanbam-audio';   // записи озвучки не удаляются при обновлении версии
@@ -13,8 +13,8 @@ const CORE = [
   'js/core/mascot.js', 'js/core/strokes.js', 'js/core/router.js', 'js/core/speech.js', 'js/core/srs.js', 'js/core/store.js', 'js/core/tts.js', 'js/core/ui.js', 'js/core/utils.js',
   'js/exercises/generator.js', 'js/exercises/keyboard.js', 'js/exercises/render.js', 'js/exercises/trace.js',
   'js/screens/dialog.js', 'js/screens/hangul.js', 'js/screens/lesson.js', 'js/screens/library.js', 'js/screens/map.js',
-  'js/screens/onboarding.js', 'js/screens/placement.js', 'js/screens/profile.js', 'js/screens/review.js', 'js/screens/session.js', 'js/screens/share.js', 'js/screens/unit.js',
-  'content/course.json', 'content/hangul.json', 'content/voices.json', 'content/emoji.json', 'audio/index.json',
+  'js/screens/onboarding.js', 'js/screens/placement.js', 'js/screens/profile.js', 'js/screens/review.js', 'js/screens/session.js', 'js/screens/share.js', 'js/screens/stories.js', 'js/screens/unit.js',
+  'content/course.json', 'content/hangul.json', 'content/voices.json', 'content/emoji.json', 'content/stories.json', 'audio/index.json',
 ];
 
 self.addEventListener('install', (event) => {

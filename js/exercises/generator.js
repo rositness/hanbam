@@ -244,3 +244,21 @@ export function genHangulQuiz(n = 12) {
   const all = src.flatMap((l) => genHangulLesson(l, { intro: false })).filter((e) => e.type !== 'trace');
   return sample(all, n);
 }
+
+// ---------- Тренировка одной грамматической темы ----------
+export function genGrammarPractice(lesson) {
+  const unit = units.get(lesson.unitId);
+  const uid = unit.id;
+  const extra = unit.lessons.flatMap((l) => l.sentences).flatMap((s) => tokenize(s.ko));
+  const ruPool = unit.lessons.flatMap((l) => l.sentences).flatMap((s) => tokenizeRu(s.ru));
+  const S = shuffle(lesson.sentences).filter((s) => tokenize(s.ko).length >= 2);
+  const ex = [
+    ...lesson.drills.map((d) => exFill(d, uid)),
+    ...S.slice(0, 3).map((s) => exBuild(s, extra, uid)),
+    ...S.slice(3, 5).filter((s) => tokenizeRu(s.ru).length <= 6).map((s) => exBuildRu(s, ruPool, uid)),
+  ];
+  // примеры из объяснения — тоже на сборку
+  (lesson.grammar?.examples || []).filter((e) => !e.ko.includes('→') && tokenize(e.ko).length >= 2).slice(0, 2)
+    .forEach((e) => ex.push(exBuild(e, extra, uid, true)));
+  return shuffle(ex);
+}

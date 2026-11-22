@@ -8,8 +8,9 @@ import { state } from '../core/store.js';
 import { strength, addWords, formatIvl, today } from '../core/srs.js';
 import { grammarBox } from './lesson.js';
 import { normalize } from '../core/hangul.js';
+import { storiesList } from './stories.js';
 
-const TABS = [['words', 'Словарь'], ['grammar', 'Грамматика'], ['dialogs', 'Диалоги'], ['phrases', 'Фразы']];
+const TABS = [['words', 'Словарь'], ['stories', 'Истории'], ['grammar', 'Грамматика'], ['dialogs', 'Диалоги'], ['phrases', 'Фразы']];
 const unitName = (id) => units.get(id)?.title || '';
 
 function wordsTab() {
@@ -80,7 +81,7 @@ const phrasesTab = () => grouped(phrases, (p) => h('div', { class: 'word-row' },
   h('div', { class: 'grow' }, h('div', { class: 'ko', lang: 'ko' }, p.ko), romEl(p.rom, p.unitId)), h('div', { class: 'ru', style: { textAlign: 'right', maxWidth: '45%' } }, p.ru)));
 
 export function libraryScreen({ tab = 'words' }) {
-  const views = { words: wordsTab, grammar: grammarTab, dialogs: dialogsTab, phrases: phrasesTab };
+  const views = { words: wordsTab, stories: storiesList, grammar: grammarTab, dialogs: dialogsTab, phrases: phrasesTab };
   return h('div', null,
     h('div', { class: 'mb' }, h('div', { class: 'h1' }, 'Библиотека'), h('div', { class: 'sub' }, `${words.size} слов · ${grammar.length} тем грамматики · ${dialogs.size} диалогов · ${phrases.length} фраз`)),
     h('div', { class: 'segmented mb' }, TABS.map(([id, label]) => h('button', { class: id === tab ? 'active' : '', onclick: () => navigate('/library/' + id) }, label))),
@@ -96,6 +97,7 @@ export function grammarDetail({ id }) {
     topbar({ title: 'Грамматика', back: () => navigate('/library/grammar') }),
     h('div', { class: 'small muted mb-s' }, unitName(g.unitId)),
     grammarBox(g, g.unitId),
+    g.lessonId ? h('button', { class: 'btn btn-primary btn-block btn-lg mt', onclick: () => navigate(`/grammar-practice/${g.lessonId}`) }, '🏋️ Тренировать эту тему') : null,
     h('div', { class: 'row mt' },
       prev ? h('button', { class: 'btn grow', onclick: () => navigate(`/grammar/${prev.id}`) }, icon('left', 'i-s'), 'Назад') : h('span', { class: 'grow' }),
       next ? h('button', { class: 'btn grow', onclick: () => navigate(`/grammar/${next.id}`) }, 'Дальше', icon('right', 'i-s')) : h('span', { class: 'grow' })));

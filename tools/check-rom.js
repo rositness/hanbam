@@ -106,6 +106,11 @@ for (const uid of course.lines.flatMap((l) => l.units)) {
 // Законные исключения: вставка ㄴ (십육 [심뉵], 지하철역 [지하철력]), в существительных
 // придыхание после ㄱ/ㄷ/ㅂ не отражается (식후 sikhu), 맛없다 [마덥따] — отдельная морфема.
 const EXCEPT = ['맛없다', '십육', '지하철역', '식후', '집안일', '다운로드', '붙였'];
+// Истории
+try {
+  const sj = JSON.parse(fs.readFileSync(path.join(root, 'stories.json'), 'utf8'));
+  for (const st of sj.stories) st.lines.forEach((l) => items.push({ where: 'история ' + st.id, ko: l[1], rom: l[2] }));
+} catch { /* нет историй */ }
 let bad = 0;
 for (const it of items) {
   const auto = romanize(it.ko);

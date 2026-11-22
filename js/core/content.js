@@ -12,6 +12,7 @@ export const phrases = [];            // разговорник
 export const genders = { M: [], F: [] }; // пол участников диалогов (для голосов)
 export const emoji = new Map();       // слово → картинка-эмодзи
 // Принимает слово-объект (сначала ищем по id — для омонимов) или строку.
+export const stories = [];           // истории для чтения
 export const emojiOf = (w) => (typeof w === 'string' ? emoji.get(w) : emoji.get(w.id) || (w.id === w.ko || String(w.id).startsWith('h:') ? emoji.get(w.ko) : '')) || '';
 const lineNodes = new Map();          // lineId → [узлы]
 
@@ -30,7 +31,9 @@ export async function loadContent() {
   hangul.rules = hj.rules || [];
   hangul.groups = hj.groups || [];
   hangul.letters.forEach((l) => hangul.byChar.set(l.ch, l));
-  const [vj, ej] = await Promise.all([getJSON('content/voices.json').catch(() => ({})), getJSON('content/emoji.json').catch(() => ({}))]);
+  const [vj, ej, sj] = await Promise.all([getJSON('content/voices.json').catch(() => ({})), getJSON('content/emoji.json').catch(() => ({})), getJSON('content/stories.json').catch(() => ({ stories: [] }))]);
+  stories.length = 0;
+  for (const st of sj.stories || []) stories.push({ ...st, lines: st.lines.map((l) => ({ who: l[0], ko: l[1], rom: l[2], ru: l[3] })), questions: st.questions || [] });
   genders.M = vj.M || []; genders.F = vj.F || [];
   for (const [k, v] of Object.entries(ej)) if (!k.startsWith('_')) emoji.set(k, v);
 

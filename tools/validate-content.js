@@ -98,6 +98,20 @@ for (const line of course.lines) {
   }
 }
 
+// Истории
+let nStories = 0;
+const unitIds = new Set(course.lines.flatMap((l) => l.units));
+try {
+  const sj = JSON.parse(fs.readFileSync(path.join(root, 'stories.json'), 'utf8'));
+  for (const st of sj.stories) {
+    nStories++;
+    const W = 'история ' + st.id;
+    if (!unitIds.has(st.after)) err(W, `неизвестный юнит after: ${st.after}`);
+    st.lines.forEach((ln, i) => { if (ln.length !== 4) err(W, 'строка: [кто, корейский, романизация, перевод]'); else checkTriple(`${W} строка ${i + 1}`, ln.slice(1)); if (ln[0] && !known.has(ln[0])) warn(W, `персонаж «${ln[0]}» не указан в voices.json`); });
+    (st.questions || []).forEach((q, i) => { if (q.after < 1 || q.after > st.lines.length) err(W, `вопрос ${i + 1}: after вне истории`); if (!(q.a >= 0 && q.a < q.opts.length)) err(W, `вопрос ${i + 1}: неверный индекс ответа`); });
+  }
+} catch (e) { if (fs.existsSync(path.join(root, 'stories.json'))) err('stories.json', e.message); }
+console.log(`\nИсторий: ${nStories}`);
 console.log(`\nКурс: ${nLessons} уроков, ${words.size} слов (без уроков хангыля), ${nRead} слов для чтения в хангыле,`);
 console.log(`      ${nGrammar} тем грамматики, ${nDialogs} диалогов (${nLines} реплик), ${nPhrases} фраз разговорника,`);
 console.log(`      ${nSentences} предложений, ${nDrills} упражнений на пропуск.\n`);

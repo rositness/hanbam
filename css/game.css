@@ -131,3 +131,11 @@
 .wotd .wotd-label { font-size: 12px; font-weight: 800; letter-spacing: .06em; color: var(--gold); }
 .wotd .wotd-ko { font-size: 30px; font-weight: 700; line-height: 1.2; }
 .wotd .wotd-emoji { font-size: 44px; }
+
+/* Истории */
+.story-head { text-align: center; padding: 6px 0 18px; }
+.story-feed { display: flex; flex-direction: column; gap: 12px; }
+.story-line.narr { padding: 12px 14px; border-radius: 16px; background: var(--surface-2); border-left: 4px solid var(--accent-3); cursor: pointer; }
+.st-ko { font-size: 19px; font-weight: 600; line-height: 1.45; }
+.story-feed .bubble .st-ko { font-size: 18px; }
+.story-q { border-color: var(--accent-2); }

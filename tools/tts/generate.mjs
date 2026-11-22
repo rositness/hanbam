@@ -47,6 +47,16 @@ for (const uid of course.lines.flatMap((l) => l.units)) {
     }
   }
 }
+// Истории: рассказчик — отдельный голос, персонажи — по полу
+const NARRATOR = 'M2';
+try {
+  const sj = read('content/stories.json');
+  for (const st of sj.stories || []) {
+    const lines = st.lines.map((x) => ({ who: x[0], ko: x[1] }));
+    const vm = dialogVoices(lines.filter((x) => x.who), genders);
+    lines.forEach((x) => add(x.who ? vm.get(x.who) : NARRATOR, x.ko));
+  }
+} catch { /* историй нет */ }
 // Фразы из интерфейса
 ['안녕하세요', '안녕하세요! 만나서 반갑습니다.', '좋아요! 잘했어요!'].forEach((t) => add('F', t));
 

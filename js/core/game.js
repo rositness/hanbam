@@ -177,6 +177,7 @@ export const ACHIEVEMENTS = [
   { id: 't5', icon: '🎯', title: 'Экзаменатор', desc: 'Сдать 5 тестов', test: (s) => s.tests >= 5 },
   { id: 'f20', icon: '🩹', title: 'Работа над ошибками', desc: 'Исправить 20 ошибок', test: (s) => s.fixed >= 20 },
   { id: 'd10', icon: '💬', title: 'Собеседник', desc: 'Прослушать 10 диалогов', test: (s) => s.dialogs >= 10 },
+  { id: 'st5', icon: '📖', title: 'Книголюб', desc: 'Прочитать 5 историй', test: (s) => (s.stories || 0) >= 5 },
   { id: 'night', icon: '🌙', title: 'Ночной Сеул', desc: 'Заниматься после 23:00', test: (s) => s.night >= 1 },
 ];
 

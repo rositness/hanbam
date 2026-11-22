@@ -18,10 +18,11 @@ import { lessonScreen, testScreen } from './screens/lesson.js';
 import { hangulScreen } from './screens/hangul.js';
 import { libraryScreen, grammarDetail } from './screens/library.js';
 import { dialogScreen } from './screens/dialog.js';
-import { reviewScreen, srsSession, mistakesSession, practiceSession } from './screens/review.js';
+import { reviewScreen, srsSession, mistakesSession, practiceSession, grammarPractice } from './screens/review.js';
 import { profileScreen, settingsScreen } from './screens/profile.js';
 import { onboarding } from './screens/onboarding.js';
 import { placementScreen } from './screens/placement.js';
+import { storyScreen } from './screens/stories.js';
 
 const app = document.getElementById('app');
 const tabbar = document.getElementById('tabbar');
@@ -56,6 +57,8 @@ route('/review/practice', practiceSession);
 route('/profile', profileScreen, { ...TAB, tabId: 'profile' });
 route('/settings', settingsScreen, { ...TAB, tabId: 'profile' });
 route('/placement', placementScreen);
+route('/story/:id', storyScreen);
+route('/grammar-practice/:id', grammarPractice);
 fallback(mapScreen);
 
 const TABS = [
